@@ -1,0 +1,6 @@
+{
+  "name": "Casino Pattern AI",
+  "description": "Professional casino pattern analysis and risk management system with real-time statistics for Roulette, Baccarat, and more.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
