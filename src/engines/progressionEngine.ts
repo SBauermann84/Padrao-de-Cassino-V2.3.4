@@ -466,11 +466,11 @@ export const updateProgressionState = (
           currentBet = initialBet;
           currentLevel = 0;
         } else {
-          currentBet = currentBet + sequenceBaseBet;
+          currentBet = sequenceBaseBet * (1 + currentLevel);
         }
       } else {
         currentLevel = Math.max(0, currentLevel - 1);
-        currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
+        currentBet = sequenceBaseBet * (1 + currentLevel);
       }
       consecutiveWins = 0;
     }
@@ -495,14 +495,14 @@ export const updateProgressionState = (
           currentBet = initialBet;
           currentLevel = 0;
         } else {
-          currentBet = currentBet + sequenceBaseBet;
+          currentBet = sequenceBaseBet * (1 + currentLevel);
         }
         consecutiveWins = 0;
       } else {
         consecutiveWins += 1;
         if (consecutiveWins >= 2) {
-          currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
           currentLevel = Math.max(0, currentLevel - 1);
+          currentBet = sequenceBaseBet * (1 + currentLevel);
           consecutiveWins = 0;
         }
       }
@@ -513,11 +513,11 @@ export const updateProgressionState = (
           currentBet = initialBet;
           currentLevel = 0;
         } else {
-          currentBet = currentBet + 2 * sequenceBaseBet;
+          currentBet = sequenceBaseBet * (1 + 2 * currentLevel);
         }
       } else {
         currentLevel = Math.max(0, currentLevel - 1);
-        currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
+        currentBet = sequenceBaseBet * (1 + 2 * currentLevel);
       }
       consecutiveWins = 0;
     }
@@ -979,11 +979,11 @@ export const getDynamicBetAndState = (
             currentBet = initialBet;
             currentLevel = 0;
           } else {
-            currentBet = currentBet + sequenceBaseBet;
+            currentBet = sequenceBaseBet * (1 + currentLevel);
           }
         } else {
           currentLevel = Math.max(0, currentLevel - 1);
-          currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
+          currentBet = sequenceBaseBet * (1 + currentLevel);
         }
         consecutiveWins = 0;
       }
@@ -1008,14 +1008,14 @@ export const getDynamicBetAndState = (
             currentBet = initialBet;
             currentLevel = 0;
           } else {
-            currentBet = currentBet + sequenceBaseBet;
+            currentBet = sequenceBaseBet * (1 + currentLevel);
           }
           consecutiveWins = 0;
         } else {
           consecutiveWins += 1;
           if (consecutiveWins >= 2) {
-            currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
             currentLevel = Math.max(0, currentLevel - 1);
+            currentBet = sequenceBaseBet * (1 + currentLevel);
             consecutiveWins = 0;
           }
         }
@@ -1026,11 +1026,11 @@ export const getDynamicBetAndState = (
             currentBet = initialBet;
             currentLevel = 0;
           } else {
-            currentBet = currentBet + 2 * sequenceBaseBet;
+            currentBet = sequenceBaseBet * (1 + 2 * currentLevel);
           }
         } else {
           currentLevel = Math.max(0, currentLevel - 1);
-          currentBet = Math.max(sequenceBaseBet, currentBet - sequenceBaseBet);
+          currentBet = sequenceBaseBet * (1 + 2 * currentLevel);
         }
         consecutiveWins = 0;
       }

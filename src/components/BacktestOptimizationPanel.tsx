@@ -36,10 +36,10 @@ interface SavedOptimizationRecord {
 
 export const BacktestOptimizationPanel: React.FC = () => {
   const { 
-    historyRoulette, 
-    historyBaccarat, 
+    backtestHistoryRoulette, 
+    backtestHistoryBaccarat, 
     seedHistory,
-    resetHistory
+    resetBacktestHistory
   } = useAppStore();
 
   const [selectedGame, setSelectedGame] = React.useState<GameType>(GameType.ROULETTE);
@@ -48,6 +48,14 @@ export const BacktestOptimizationPanel: React.FC = () => {
   const [isSimulating, setIsSimulating] = React.useState(false);
   const [savedRecords, setSavedRecords] = React.useState<SavedOptimizationRecord[]>([]);
   const [showSeedSuccess, setShowSeedSuccess] = React.useState(false);
+
+  // States for bulk import
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const [importText, setImportText] = React.useState('');
+  const [importOrderAsc, setImportOrderAsc] = React.useState(true);
+  const [clearBeforeImport, setClearBeforeImport] = React.useState(true);
+  const [importErrorMsg, setImportErrorMsg] = React.useState<string | null>(null);
+  const [importSuccessMsg, setImportSuccessMsg] = React.useState<string | null>(null);
 
   // Load saved runs from localStorage on mount
   React.useEffect(() => {
@@ -71,20 +79,92 @@ export const BacktestOptimizationPanel: React.FC = () => {
     }
   };
 
-  // Get current game's history
-  const activeHistory = selectedGame === GameType.ROULETTE ? historyRoulette : historyBaccarat;
+  // Get current game's history (use dedicated backtest arrays)
+  const activeHistory = selectedGame === GameType.ROULETTE 
+    ? (backtestHistoryRoulette || []) 
+    : (backtestHistoryBaccarat || []);
 
   // Seeding high-fidelity results
   const handleSeedHistory = () => {
-    seedHistory(selectedGame, 200);
+    seedHistory(selectedGame, 500);
     setShowSeedSuccess(true);
     setTimeout(() => setShowSeedSuccess(false), 4000);
   };
 
   // Clear current active table history (Limpar Resultados)
   const handleClearHistory = () => {
-    resetHistory(selectedGame);
+    resetBacktestHistory(selectedGame);
     setSimulationResults(null);
+  };
+
+  const handleConfirmImport = () => {
+    if (!importText.trim()) {
+      setImportErrorMsg('Insira dados para importar.');
+      return;
+    }
+
+    try {
+      const rawTokens = importText.split(/[,\s;\t\r\n]+/).map(t => t.trim()).filter(Boolean);
+      
+      const parsedResults: any[] = [];
+      if (selectedGame === GameType.ROULETTE) {
+        for (const token of rawTokens) {
+          const num = parseInt(token, 10);
+          if (!isNaN(num) && num >= 0 && num <= 36) {
+            parsedResults.push(num);
+          }
+        }
+      } else {
+        for (const token of rawTokens) {
+          const upper = token.toUpperCase();
+          if (upper === 'P' || upper === 'PLAYER' || upper === 'JOGADOR' || upper === 'J' || upper === 'AZUL') {
+            parsedResults.push('P');
+          } else if (upper === 'B' || upper === 'BANKER' || upper === 'BANCA' || upper === 'BANCO' || upper === 'VERMELHO') {
+            parsedResults.push('B');
+          } else if (upper === 'T' || upper === 'TIE' || upper === 'EMPATE' || upper === 'E' || upper === 'VERDE') {
+            parsedResults.push('T');
+          }
+        }
+      }
+
+      if (parsedResults.length === 0) {
+        setImportErrorMsg('Nenhum resultado válido pôde ser parseado no texto colado.');
+        return;
+      }
+
+      const itemsToSequence = [...parsedResults];
+      if (!importOrderAsc) {
+        itemsToSequence.reverse();
+      }
+
+      const generatedResults: GameResult[] = itemsToSequence.map((resVal, idx) => ({
+        id: `import-${Math.random().toString(36).substring(2, 9)}-${Date.now()}-${idx}`,
+        gameType: selectedGame,
+        result: resVal,
+        timestamp: Date.now() - (itemsToSequence.length - 1 - idx) * 1000,
+        sessionId: 'bulk-import',
+        metadata: {}
+      }));
+
+      if (clearBeforeImport) {
+        resetBacktestHistory(selectedGame);
+      }
+
+      // Seed directly!
+      useAppStore.getState().seedGameHistory(selectedGame, generatedResults);
+
+      setImportSuccessMsg(`${generatedResults.length} rodadas importadas com sucesso!`);
+      setImportText('');
+      setImportErrorMsg(null);
+      setSimulationResults(null);
+      
+      setTimeout(() => {
+        setImportSuccessMsg(null);
+        setIsImportOpen(false);
+      }, 3000);
+    } catch (err: any) {
+      setImportErrorMsg(`Erro ao importar: ${err?.message || err}`);
+    }
   };
 
   // Clear current active simulation view (Limpar Seleção)
@@ -297,42 +377,56 @@ export const BacktestOptimizationPanel: React.FC = () => {
             </div>
 
             {/* Alerts & Seed helper */}
-            {activeHistory.length < 10 ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2 text-[10px] text-amber-300 leading-relaxed">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Poucos dados!</strong> Mínimo de 10 jogadas recomendado para um backtest confiável. Insira lances no painel principal ou clique no botão abaixo.
-                  </span>
-                </div>
-
-                <button
-                  onClick={handleSeedHistory}
-                  className="w-full py-2.5 bg-zinc-900 border border-[#c6a34f]/35 hover:bg-zinc-800 text-[#c6a34f] hover:text-amber-400 font-bold rounded-xl text-[9px] uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  ⚡ Gerar Amostragem (200 Rodadas)
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-xl flex gap-2 text-[9px] text-green-400">
-                  <ShieldCheck size={13} className="shrink-0 mt-0.5" />
-                  <span>Amostragem ativa saudável com {activeHistory.length} lances reais registrados.</span>
-                </div>
-
-                <button
-                  onClick={handleClearHistory}
-                  className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 font-bold rounded-xl text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
-                >
-                  <Trash2 size={11} />
-                  Limpar Amostragem da Mesa
-                </button>
+            {activeHistory.length < 10 && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2 text-[10px] text-amber-300 leading-relaxed animate-in fade-in duration-300">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  <strong>Poucos dados!</strong> Mínimo de 10 jogadas recomendado para um backtest confiável. Insira lances no painel principal ou clique em um dos botões abaixo.
+                </span>
               </div>
             )}
 
+            {activeHistory.length >= 10 && (
+              <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-xl flex gap-2 text-[9px] text-green-400 animate-in fade-in duration-300">
+                <ShieldCheck size={13} className="shrink-0 mt-0.5" />
+                <span>Amostragem ativa saudável com {activeHistory.length} lances reais registrados.</span>
+              </div>
+            )}
+
+            {/* Action buttons (always visible) */}
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={handleSeedHistory}
+                  className="py-2 bg-[#c6a34f]/10 hover:bg-[#c6a34f]/20 border border-[#c6a34f]/25 text-[#c6a34f] font-bold rounded-xl text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                >
+                  ⚡ Gerar 500 Rodadas
+                </button>
+                <button
+                  onClick={() => setIsImportOpen(true)}
+                  className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                >
+                  📥 Importar em Massa
+                </button>
+              </div>
+
+              <button
+                onClick={handleClearHistory}
+                disabled={activeHistory.length === 0}
+                className={`w-full py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                  activeHistory.length === 0
+                    ? 'bg-zinc-800/50 text-zinc-600 border border-white/5 cursor-not-allowed'
+                    : 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400'
+                }`}
+              >
+                <Trash2 size={11} />
+                Limpar Rodadas Inseridas
+              </button>
+            </div>
+
             {showSeedSuccess && (
               <div className="p-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 rounded-xl text-[9px] font-bold text-center uppercase tracking-wider animate-in fade-in duration-300">
-                Amostragem de 200 rodadas semeada com sucesso!
+                Amostragem de 500 rodadas semeada com sucesso!
               </div>
             )}
           </div>
@@ -451,19 +545,30 @@ export const BacktestOptimizationPanel: React.FC = () => {
                   {simulationResults.map((res) => (
                     <div key={res.id} className="bg-[#111111] p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all space-y-3">
                       <div className="flex items-start justify-between gap-2 border-b border-white/5 pb-2">
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <h5 className="text-[11px] font-black text-white uppercase tracking-wide truncate max-w-[180px]">
                             {res.name}
                           </h5>
                           <span className="text-[8px] text-white/40 font-mono">Simulado em {res.wins + res.losses} jogadas</span>
                         </div>
-                        <span className={`text-[9px] font-black font-mono leading-none px-2 py-1 rounded-md ${
-                          res.winRate >= 70 ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
-                          res.winRate >= 50 ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 
-                          'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}>
-                          {res.winRate}% WR
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[9px] font-black font-mono leading-none px-2 py-1 rounded-md ${
+                            res.winRate >= 70 ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
+                            res.winRate >= 50 ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 
+                            'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}>
+                            {res.winRate}% WR
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSimulationResults(prev => prev ? prev.filter(item => item.id !== res.id) : null);
+                            }}
+                            className="p-1 text-white/35 hover:text-red-400 rounded transition-all cursor-pointer hover:bg-white/5"
+                            title="Limpar este backtest"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2">
@@ -581,6 +686,98 @@ export const BacktestOptimizationPanel: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Importação */}
+      {isImportOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111111] border border-white/10 rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-2xl relative animate-in zoom-in duration-200">
+            <button
+              onClick={() => { setIsImportOpen(false); setImportErrorMsg(null); }}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition-all cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+              <History size={18} className="text-[#c6a34f]" />
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">Importar Histórico em Massa</h3>
+            </div>
+
+            <p className="text-[10px] text-white/60 uppercase leading-relaxed">
+              Cole abaixo uma sequência de resultados separados por espaço, vírgula, ponto e vírgula ou quebras de linha.
+            </p>
+
+            <div className="p-3 bg-black/40 border border-white/5 rounded-xl text-[9px] text-white/40 space-y-1">
+              <span className="font-extrabold text-[#c6a34f] block uppercase tracking-wider">Formatos de entrada aceitos:</span>
+              {selectedGame === GameType.ROULETTE ? (
+                <p>● Números inteiros de 0 a 36. Exemplo: <strong className="font-mono text-white">32, 15, 19, 4, 21, 2, 25</strong></p>
+              ) : (
+                <p>● Letras representativas. Exemplo: <strong className="font-mono text-white">P, B, T, P, P, B, T</strong> (P = Player, B = Banker, T = Tie/Empate)</p>
+              )}
+            </div>
+
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={selectedGame === GameType.ROULETTE ? "Cole os números aqui (ex: 32, 15, 19, 21...)" : "Cole os resultados aqui (ex: P, B, T, P...)"}
+              rows={6}
+              className="w-full bg-black border border-white/10 focus:border-[#c6a34f] outline-none text-xs rounded-xl p-3 text-white font-mono leading-relaxed"
+            />
+
+            {/* Checkbox settings */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-[10px] uppercase font-bold text-white/60">
+                <input
+                  type="checkbox"
+                  checked={clearBeforeImport}
+                  onChange={(e) => setClearBeforeImport(e.target.checked)}
+                  className="rounded border-white/10 text-[#c6a34f] bg-black focus:ring-[#c6a34f] w-3.5 h-3.5"
+                />
+                Limpar dados anteriores
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-[10px] uppercase font-bold text-white/60">
+                <input
+                  type="checkbox"
+                  checked={importOrderAsc}
+                  onChange={(e) => setImportOrderAsc(e.target.checked)}
+                  className="rounded border-white/10 text-[#c6a34f] bg-black focus:ring-[#c6a34f] w-3.5 h-3.5"
+                />
+                Da esquerda para direita = Antigo p/ Novo
+              </label>
+            </div>
+
+            {importErrorMsg && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                ⚠️ {importErrorMsg}
+              </div>
+            )}
+
+            {importSuccessMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wide text-center">
+                ✅ {importSuccessMsg}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t border-white/5 pt-3">
+              <button
+                type="button"
+                onClick={() => { setIsImportOpen(false); setImportErrorMsg(null); }}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                className="px-4 py-2 bg-[#c6a34f] hover:bg-amber-400 text-black rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Importar Resultados
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
