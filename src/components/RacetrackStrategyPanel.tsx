@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { GameResult } from '../types';
 import { ROULETTE_RACE_SEQUENCE, COLOR_MAP } from '../constants';
+import { useTranslation } from '../locales/translations';
 import { racetrackEngine, RACETRACK_TERMINAL_DEFS, RacetrackSignal } from '../engines/racetrackEngine';
 
 interface RacetrackStrategyPanelProps {
@@ -23,6 +24,7 @@ interface RacetrackStrategyPanelProps {
 const WHEEL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
 
 export const RacetrackStrategyPanel: React.FC<RacetrackStrategyPanelProps> = ({ history }) => {
+  const { tEntry } = useTranslation();
   const [showExplanation, setShowExplanation] = React.useState(false);
   const [selectedTerminalTab, setSelectedTerminalTab] = React.useState<number>(0);
   const [neighborCount, setNeighborCount] = React.useState<number>(2);
@@ -304,7 +306,7 @@ export const RacetrackStrategyPanel: React.FC<RacetrackStrategyPanelProps> = ({ 
                       Sinal Ativado
                     </span>
                     <h4 className="text-base font-black text-white tracking-tight mt-1">
-                      {sig.patternName} - {sig.entry}
+                      {sig.patternName} - {tEntry(sig.entry)}
                     </h4>
                   </div>
                   <div className="text-right">

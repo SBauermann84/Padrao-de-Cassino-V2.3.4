@@ -1286,10 +1286,65 @@ export const getDynamicBetAndState = (
     }
   }
 
-  // For roulette strategies with multiple positions (N > 1), we must ensure the total bet size is a multiple of initialBet (initialChip * N)
-  // to guarantee that the individual position chip sizes are exact multiples of initialChip.
+  // For Labouchere and Oscar's Grind, the bet size is handled via state list manipulation.
+  // For all other modes, calculate progression relative to the sequence base bet or manual chip override.
+  if (config.mode !== ManagementMode.LABOUCHERE && config.mode !== ManagementMode.OSCARS_GRIND) {
+    const hasManual = config.manualGaleChips && config.manualGaleChips[currentLevel] !== undefined && config.manualGaleChips[currentLevel] !== null && config.manualGaleChips[currentLevel] > 0;
+    if (hasManual) {
+      currentBet = config.manualGaleChips![currentLevel] * initialChip * N;
+    } else if (currentLevel === 0) {
+      currentBet = initialBet;
+    } else {
+      let finalUnits = 1.0;
+      const mult = config.multiplier || 2;
+      switch (config.mode) {
+        case ManagementMode.MARTINGALE:
+        case ManagementMode.SOROS:
+          finalUnits = Math.pow(mult, currentLevel);
+          break;
+        case ManagementMode.FIBONACCI:
+          finalUnits = fibSequence[currentLevel] || fibSequence[fibSequence.length - 1] || 1;
+          break;
+        case ManagementMode.CYCLIC: {
+          const cycle = [1, 2, 4, 8, 16];
+          finalUnits = cycle[currentLevel % cycle.length] || 1;
+          break;
+        }
+        case ManagementMode.SISTEMA_2_GANHOS:
+        case ManagementMode.D_ALEMBERT:
+        case ManagementMode.NIVEL_FIXO_RECUPERACAO:
+          finalUnits = 1 + currentLevel;
+          break;
+        case ManagementMode.SISTEMA_2U_REC1:
+          finalUnits = 1 + 2 * currentLevel;
+          break;
+        case ManagementMode.STAR_2_2:
+          finalUnits = currentLevel < star22Seq.length ? star22Seq[currentLevel] : star22Seq[star22Seq.length - 1];
+          break;
+        case ManagementMode.STAR_2_0:
+          finalUnits = currentLevel < star20Seq.length ? star20Seq[currentLevel] : star20Seq[star20Seq.length - 1];
+          break;
+        case ManagementMode.DUTCH: {
+          const dutchIdx = Math.floor(currentLevel / 3);
+          finalUnits = 1 + dutchIdx * 2;
+          break;
+        }
+        case ManagementMode.PADOVAN:
+          finalUnits = currentLevel < padovanSequence.length ? padovanSequence[currentLevel] : padovanSequence[padovanSequence.length - 1];
+          break;
+        case ManagementMode.FIXED:
+        default:
+          finalUnits = 1.0;
+          break;
+      }
+      currentBet = sequenceBaseBet * finalUnits;
+    }
+  }
+
+  // Ensure correct rounding relative to active layout
   const roundingUnit = (isBaccarat || N === 1) ? initialChip : initialBet;
   currentBet = Math.max(roundingUnit, Math.round(currentBet / roundingUnit) * roundingUnit);
+
   if (config.minBet !== undefined && config.minBet > 0) {
     currentBet = Math.max(config.minBet, currentBet);
   }
@@ -1297,10 +1352,6 @@ export const getDynamicBetAndState = (
     currentBet = Math.min(config.maxBet, currentBet);
   }
   currentBet = Number(currentBet.toFixed(2));
-
-  if (config.manualGaleChips && config.manualGaleChips[currentLevel] !== undefined && config.manualGaleChips[currentLevel] !== null && config.manualGaleChips[currentLevel] > 0) {
-    currentBet = Number((config.manualGaleChips[currentLevel] * initialChip * N).toFixed(2));
-  }
 
   return {
     currentBetSize: currentBet,
@@ -1561,32 +1612,40 @@ export const getOverrideChipForSignal = (sig: any, config: ManagementConfig): nu
 
 export const getPositionCountForSignal = (sig: any): number => {
   if (!sig) return 11;
+
+  // 1:1 simple chances & 2:1 dozens/columns MUST be checked FIRST
+  // because even if they are in a custom strategy, if the entry recommended is a simple chance,
+  // it is a 1-position bet on the layout!
+  if (sig.entry) {
+    const ent = String(sig.entry).toLowerCase().trim();
+    if (
+      ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
+      ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' ||
+      ent === 'maior' || ent === 'menor' || ent === 'player' || ent === 'banker' || ent === 'tie' ||
+      ent === 'jogador' || ent === 'banca' || ent === 'empate' ||
+      ent.includes('red') || ent.includes('black') ||
+      ent.includes('vermelho') || ent.includes('preto') || ent.includes('par') || ent.includes('impar') ||
+      ent.includes('ímpar') || ent.includes('even') || ent.includes('odd') || ent.includes('high') ||
+      ent.includes('low') || ent.includes('maior') || ent.includes('menor') ||
+      ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36') ||
+      ent.includes('player') || ent.includes('banker') || ent.includes('tie') ||
+      ent.includes('jogador') || ent.includes('banca') || ent.includes('empate')
+    ) {
+      return 1;
+    }
+  }
+
   if (sig.unitsRequired !== undefined) return sig.unitsRequired;
   if (sig.entryNumbers && sig.entryNumbers.length > 0) return sig.entryNumbers.length;
   if (!sig.entry) return 11;
 
   const ent = String(sig.entry).toLowerCase().trim();
 
-  // 1:1 simple chances
-  if (
-    ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
-    ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' ||
-    ent === 'maior' || ent === 'menor' || ent.includes('red') || ent.includes('black') ||
-    ent.includes('vermelho') || ent.includes('preto') || ent.includes('par') || ent.includes('impar') ||
-    ent.includes('ímpar') || ent.includes('even') || ent.includes('odd') || ent.includes('high') ||
-    ent.includes('low') || ent.includes('maior') || ent.includes('menor')
-  ) {
-    return 1;
-  }
-
   if (ent.includes('pleno')) {
     return 11;
   }
   if (ent.includes('terminal')) {
     return 4;
-  }
-  if (ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36')) {
-    return 1; // Played as 1 outer spot bet of payout 2:1
   }
   if (ent.includes('dividida')) {
     return 2;

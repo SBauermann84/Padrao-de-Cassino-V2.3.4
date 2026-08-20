@@ -670,9 +670,27 @@ export const runSingleBacktestSimulation = (
 };
 
 export const getStrategyPositionCount = (strategy: Strategy): number => {
+  if (!strategy) return 1;
   if (strategy.id === 'system-roulette-tpa84') return 24;
   if (strategy.id === 'system-roulette-racetrack') return 11;
   if (strategy.id === 'system-roulette-angel84') return 25;
+  
+  if (strategy.rules?.bets && Array.isArray(strategy.rules.bets)) {
+    let count = 0;
+    strategy.rules.bets.forEach((bet: any) => {
+      if (bet.type === 'number') {
+        count += 1;
+      } else if (bet.type === 'multi' && Array.isArray(bet.target)) {
+        count += bet.target.length;
+      } else if (bet.type === 'dozen' || bet.type === 'column' || bet.type === 'color' || bet.type === 'even_chance') {
+        count += 1;
+      } else {
+        count += 1;
+      }
+    });
+    if (count > 0) return count;
+  }
+
   if (strategy.gameType === GameType.ROULETTE) {
     const coveredNumbers = getCoveredNumbersForStrategy(strategy);
     if (coveredNumbers && coveredNumbers.length > 0) {

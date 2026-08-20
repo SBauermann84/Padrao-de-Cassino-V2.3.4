@@ -5,6 +5,7 @@ import { GameResult, ManagementConfig, ManagementMode, RiskProfile } from '../ty
 import { getDynamicBetAndState, calculateProportionalCoverage, getOptimalChipSize, getOverrideChipForSignal as getOverrideChipForSignalFromEngine, calculatePayoutRatioForEntry, getPositionCountForSignal } from '../engines/progressionEngine';
 import { Shield, Sparkles, ArrowRight, Zap, RefreshCw, Undo2, ShieldAlert, Check, Keyboard, Target, Compass, Flame, ChevronLeft, ChevronRight, Sliders, Eye, ChevronDown, ChevronUp, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from '../locales/translations';
 
 interface RouletteInputProps {
   onNumberClick: (num: number) => void;
@@ -29,6 +30,7 @@ const RouletteInput: React.FC<RouletteInputProps> = ({
   isAutoPaused = false,
   onConfigChange
 }) => {
+  const { tEntry } = useTranslation();
   const [typedValue, setTypedValue] = React.useState('');
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [isInputFocused, setIsInputFocused] = React.useState(false);
@@ -625,7 +627,7 @@ const RouletteInput: React.FC<RouletteInputProps> = ({
                       Apostar <strong className="text-[#c6a34f] font-mono font-black">R$ {currentBet.toFixed(2)}</strong> na opção:{' '}
                     </>
                   )}
-                  <span className="text-white underline decoration-amber-500/30 font-bold">{confirmedSignal.entry}</span>
+                  <span className="text-white underline decoration-amber-500/30 font-bold">{tEntry(confirmedSignal.entry)}</span>
                 </p>
               </div>
             </div>

@@ -479,6 +479,98 @@ export function useTranslation() {
     const text = langDict[key] || translations['pt-BR'][key] || defaultValue || key;
     return text;
   };
+
+  const tEntry = (entry: string | undefined | null): string => {
+    if (!entry) return '';
+    const cleanEntry = entry.trim();
+    
+    const entryTranslations: Record<string, Record<string, string>> = {
+      'pt-BR': {
+        'odd': 'Ímpar',
+        'even': 'Par',
+        'red': 'Vermelho',
+        'black': 'Preto',
+        'high': 'Maior',
+        'low': 'Menor',
+        'player': 'Player',
+        'banker': 'Banker',
+        'tie': 'Empate',
+        'p-pair': 'Par Player',
+        'b-pair': 'Par Banker'
+      },
+      'en': {
+        'odd': 'Odd',
+        'even': 'Even',
+        'red': 'Red',
+        'black': 'Black',
+        'high': 'High',
+        'low': 'Low',
+        'player': 'Player',
+        'banker': 'Banker',
+        'tie': 'Tie',
+        'p-pair': 'P-Pair',
+        'b-pair': 'B-Pair'
+      },
+      'es': {
+        'odd': 'Impar',
+        'even': 'Par',
+        'red': 'Rojo',
+        'black': 'Negro',
+        'high': 'Alto',
+        'low': 'Bajo',
+        'player': 'Player',
+        'banker': 'Banker',
+        'tie': 'Empate',
+        'p-pair': 'Pareja P',
+        'b-pair': 'Pareja B'
+      },
+      'ru': {
+        'odd': 'Нечетное',
+        'even': 'Четное',
+        'red': 'Красное',
+        'black': 'Черное',
+        'high': 'Больше',
+        'low': 'Меньше',
+        'player': 'Игрок',
+        'banker': 'Банкир',
+        'tie': 'Ничья',
+        'p-pair': 'Пара Игрока',
+        'b-pair': 'Пара Банкира'
+      },
+      'zh': {
+        'odd': '单',
+        'even': '双',
+        'red': '红',
+        'black': '黑',
+        'high': '大',
+        'low': '小',
+        'player': '闲',
+        'banker': '庄',
+        'tie': '和',
+        'p-pair': '闲对',
+        'b-pair': '庄对'
+      }
+    };
+
+    const targetLang = lang === 'pt-BR' || lang === 'en' || lang === 'es' || lang === 'ru' || lang === 'zh' ? lang : 'pt-BR';
+    const dict = entryTranslations[targetLang] || entryTranslations['pt-BR'];
+    
+    const lowerKey = cleanEntry.toLowerCase();
+    if (dict[lowerKey]) {
+      return dict[lowerKey];
+    }
+    
+    let translated = cleanEntry;
+    Object.keys(entryTranslations['en']).forEach((enWord) => {
+      const regex = new RegExp(`\\b${enWord}\\b`, 'gi');
+      if (regex.test(translated)) {
+        const replacement = dict[enWord] || enWord;
+        translated = translated.replace(regex, replacement);
+      }
+    });
+
+    return translated;
+  };
   
-  return { t, lang };
+  return { t, tEntry, lang };
 }

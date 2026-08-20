@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Flame, Sparkles, TrendingUp, HelpCircle, Swords, Zap, TableProperties } from 'lucide-react';
 import { TrendRecommendation, trendAnalysisEngine } from '../engines/trendAnalysisEngine';
 import { GameResult, GameType } from '../types';
+import { useTranslation } from '../locales/translations';
 
 interface TrendAnalysisPanelProps {
   gameType: GameType;
@@ -12,6 +13,7 @@ interface TrendAnalysisPanelProps {
 }
 
 export const TrendAnalysisPanel: React.FC<TrendAnalysisPanelProps> = ({ gameType, history, onApplyEntry, compact = false }) => {
+  const { tEntry } = useTranslation();
   const isRoulette = gameType === GameType.ROULETTE;
   
   const { recommendations, mostAssertive, streakStats, categoryDetails } = React.useMemo(() => {
@@ -91,7 +93,7 @@ export const TrendAnalysisPanel: React.FC<TrendAnalysisPanelProps> = ({ gameType
             <div className="flex items-center gap-4 self-stretch sm:self-auto justify-between border-t border-white/5 pt-3 sm:border-0 sm:pt-0">
               <div className="text-left sm:text-right">
                 <div className="text-[10px] font-bold text-[#c6a34f] uppercase tracking-widest">Entrada de Alta Probabilidade</div>
-                <div className="text-2xl font-black text-white uppercase tracking-tighter mt-1">{mostAssertive.entry}</div>
+                <div className="text-2xl font-black text-white uppercase tracking-tighter mt-1">{tEntry(mostAssertive.entry)}</div>
                 <div className="text-[9px] font-mono text-zinc-500">Confiança: <span className="text-green-500 font-bold">{mostAssertive.confidence.toFixed(0)}%</span></div>
               </div>
               

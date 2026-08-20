@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { GameType } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from '../locales/translations';
 
 interface OverlayWidgetProps {
   activeSignals: any[];
@@ -41,6 +42,7 @@ export const OverlayWidget: React.FC<OverlayWidgetProps> = ({
   setGameType,
   derivedStats
 }) => {
+  const { tEntry } = useTranslation();
   const { 
     historyRoulette, 
     historyBaccarat, 
@@ -403,7 +405,7 @@ export const OverlayWidget: React.FC<OverlayWidgetProps> = ({
                   <div className="flex items-center justify-between border-t border-white/5 pt-1.5">
                     <span className="text-[7.5px] text-white/45 uppercase tracking-wider">RECOMENDAÇÃO:</span>
                     <span className="text-[10px] font-black font-mono text-[#c6a34f] border border-[#c6a34f]/30 px-1.5 py-0.5 rounded bg-[#c6a34f]/10 shrink-0">
-                      {sig.entry}
+                      {tEntry(sig.entry)}
                     </span>
                   </div>
                 </div>

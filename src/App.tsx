@@ -1288,7 +1288,25 @@ export default function App() {
       if (currentGameType === GameType.BACCARAT) return 1;
       if (!entryStr) return 11; // default fallback
 
-      const ent = entryStr.toLowerCase();
+      const ent = entryStr.toLowerCase().trim();
+
+      // 1:1 chances (odd/even, red/black, high/low, player/banker/tie) & dozens/columns MUST be checked FIRST
+      // because even if they are defined inside a custom strategy, if the active recommended option/entry
+      // is a simple chance or dozen/column, it takes exactly 1 physical chip position on the layout!
+      if (
+        ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
+        ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' || ent === 'maior' || ent === 'menor' ||
+        ent === 'player' || ent === 'banker' || ent === 'tie' || ent === 'jogador' || ent === 'banca' || ent === 'empate' ||
+        ent.includes('red') || ent.includes('black') ||
+        ent.includes('vermelho') || ent.includes('preto') || ent.includes('par') || ent.includes('impar') ||
+        ent.includes('ímpar') || ent.includes('even') || ent.includes('odd') || ent.includes('high') ||
+        ent.includes('low') || ent.includes('maior') || ent.includes('menor') ||
+        ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36') ||
+        ent.includes('player') || ent.includes('banker') || ent.includes('tie') ||
+        ent.includes('jogador') || ent.includes('banca') || ent.includes('empate')
+      ) {
+        return 1;
+      }
       
       // Custom strategies lookup
       if (strategyIdStr) {
@@ -1301,19 +1319,6 @@ export default function App() {
       // Pleno
       if (ent.includes('pleno')) {
         return 1; // single number bet
-      }
-      
-      // 1:1 chances (odd/even, red/black, high/low)
-      if (
-        ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
-        ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' || ent === 'maior' || ent === 'menor'
-      ) {
-        return 1; // 1:1 simple chance spots
-      }
-
-      // Dozens and Columns (Dúzias / Colunas)
-      if (ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36')) {
-        return 1; // 2:1 simple spots
       }
 
       // Terminals (e.g. "Terminal 4" covers 4, 14, 24, 34)
@@ -1456,7 +1461,28 @@ export default function App() {
     const signalsWithWinRate = filteredSignals.map(sig => {
       const evalStrat = evaluatedStrategies.find(item => item.strat.id === sig.strategyId);
       const winRate = evalStrat ? evalStrat.winRate : (sig.confidence || 0);
-      const units = sig.unitsRequired !== undefined ? sig.unitsRequired : calculateUnitsRequiredForEntry(sig.entry, sig.strategyId);
+      let units = sig.unitsRequired !== undefined ? sig.unitsRequired : calculateUnitsRequiredForEntry(sig.entry, sig.strategyId);
+      
+      // Safety check: force 1 for any simple chance (1:1) or dozen/column (2:1) entry
+      if (sig.entry) {
+        const ent = String(sig.entry).toLowerCase().trim();
+        if (
+          ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
+          ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' ||
+          ent === 'maior' || ent === 'menor' || ent === 'player' || ent === 'banker' || ent === 'tie' ||
+          ent === 'jogador' || ent === 'banca' || ent === 'empate' ||
+          ent.includes('red') || ent.includes('black') ||
+          ent.includes('vermelho') || ent.includes('preto') || ent.includes('par') || ent.includes('impar') ||
+          ent.includes('ímpar') || ent.includes('even') || ent.includes('odd') || ent.includes('high') ||
+          ent.includes('low') || ent.includes('maior') || ent.includes('menor') ||
+          ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36') ||
+          ent.includes('player') || ent.includes('banker') || ent.includes('tie') ||
+          ent.includes('jogador') || ent.includes('banca') || ent.includes('empate')
+        ) {
+          units = 1;
+        }
+      }
+
       return {
         ...sig,
         strategyWinRate: winRate,
@@ -3239,7 +3265,7 @@ export default function App() {
                         </div>
                       </div>
                     ) : (
-                      <SignalsPanel signals={activeSignals} winRate={winRate} currentGaleLevel={nextBetState.currentLevel} />
+                      <SignalsPanel signals={activeSignals} winRate={winRate} currentGaleLevel={nextBetState.currentLevel} sequenceBaseBet={nextBetState.sequenceBaseBet} />
                     )}
                   </div>
                 </div>
@@ -3454,7 +3480,7 @@ export default function App() {
                         </div>
                       </div>
                     ) : (
-                      <SignalsPanel signals={activeSignals} winRate={winRate} currentGaleLevel={nextBetState.currentLevel} />
+                      <SignalsPanel signals={activeSignals} winRate={winRate} currentGaleLevel={nextBetState.currentLevel} sequenceBaseBet={nextBetState.sequenceBaseBet} />
                     )}
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { GameType, GameResult, ManagementConfig, ManagementMode, RiskProfile } f
 import { getDynamicBetAndState } from '../engines/progressionEngine';
 import { Sparkles, ArrowRight, Shield, ShieldAlert, Undo2, RefreshCw, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import BaccaratRoadmaps from './BaccaratRoadmaps';
+import { useTranslation } from '../locales/translations';
 
 interface OtherGameInputProps {
   gameType: GameType;
@@ -25,6 +26,7 @@ const OtherGameInput: React.FC<OtherGameInputProps> = ({
   activeSignal,
   isAutoPaused = false
 }) => {
+  const { tEntry } = useTranslation();
   const beadScrollRef = React.useRef<HTMLDivElement>(null);
 
   const scrollBead = (direction: 'left' | 'right') => {
@@ -179,7 +181,7 @@ const OtherGameInput: React.FC<OtherGameInputProps> = ({
               </h5>
               <p className="text-xs md:text-[13px] text-zinc-300 mt-1 font-medium">
                 Apostar <strong className="text-[#c6a34f] font-mono font-black text-base">R$ {currentBet.toFixed(2)}</strong> na casa:{' '}
-                <strong className="text-white uppercase underline decoration-amber-500/40 font-black">{activeSignal.entry}</strong>
+                <strong className="text-white uppercase underline decoration-amber-500/40 font-black">{tEntry(activeSignal.entry)}</strong>
               </p>
             </div>
           </div>

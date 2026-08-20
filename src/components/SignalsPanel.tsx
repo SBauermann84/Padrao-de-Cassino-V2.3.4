@@ -5,15 +5,64 @@ import { SignalType, Strategy } from '../types';
 import { COLOR_MAP } from '../constants';
 import { useAppStore } from '../store/useAppStore';
 import { getStrategyExplanation } from '../engines/dynamicStrategyEngine';
+import { useTranslation } from '../locales/translations';
 
 interface SignalsPanelProps {
   signals: any[];
   winRate?: number;
   strategies?: Strategy[];
   currentGaleLevel?: number;
+  sequenceBaseBet?: number;
 }
 
-const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strategies: propStrategies, currentGaleLevel = 0 }) => {
+const getGaleChipMultiplier = (level: number, management: any): number => {
+  if (level <= 0) return 1;
+  const mode = management?.mode;
+  const multiplier = management?.multiplier || 2;
+  const manualChips = management?.manualGaleChips;
+  if (manualChips && manualChips[level] !== undefined && manualChips[level] !== null && manualChips[level] > 0) {
+    return manualChips[level];
+  }
+
+  const star22Seq = [1, 1, 2, 2, 3, 4, 5, 7, 9, 12, 16, 21, 28, 37, 49, 65, 86, 114, 151, 200, 265, 351, 465, 616, 816];
+  const star20Seq = [1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 5, 7, 9, 12, 16, 21, 28, 37, 49, 65, 86, 114, 151, 200, 265, 351, 465, 616, 816];
+  const fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393, 196418, 317811, 514229, 832040, 1346269, 2178309];
+  const padovanSequence = [1, 1, 1, 2, 2, 3, 4, 5, 7, 9, 12, 16, 21, 28, 37, 49, 65, 86, 114, 151, 200, 265, 351, 465, 616, 816];
+
+  switch (mode) {
+    case 'martingale':
+    case 'soros':
+      return Math.pow(multiplier, level);
+    case 'fibonacci':
+      return fibSequence[level] || fibSequence[fibSequence.length - 1] || 1;
+    case 'cyclic': {
+      const cycle = [1, 2, 4, 8, 16];
+      return cycle[level % cycle.length] || 1;
+    }
+    case 'sistema_2_ganhos':
+    case 'd_alembert':
+    case 'nivel_fixo_recuperacao':
+      return 1 + level;
+    case 'sistema_2u_rec1':
+      return 1 + 2 * level;
+    case 'star_2_2':
+      return level < star22Seq.length ? star22Seq[level] : star22Seq[star22Seq.length - 1];
+    case 'star_2_0':
+      return level < star20Seq.length ? star20Seq[level] : star20Seq[star20Seq.length - 1];
+    case 'dutch': {
+      const dutchIdx = Math.floor(level / 3);
+      return 1 + dutchIdx * 2;
+    }
+    case 'padovan':
+      return level < padovanSequence.length ? padovanSequence[level] : padovanSequence[padovanSequence.length - 1];
+    case 'fixed':
+    default:
+      return 1;
+  }
+};
+
+const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strategies: propStrategies, currentGaleLevel = 0, sequenceBaseBet }) => {
+  const { tEntry } = useTranslation();
   const storeStrategies = useAppStore(state => state.strategies);
   const bankroll = useAppStore(state => state.bankroll);
   const currentBaseChip = bankroll?.management?.minChip && bankroll?.management?.minChip > 0 
@@ -22,6 +71,41 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
 
   const strategies = propStrategies || storeStrategies;
   const [expandedSignals, setExpandedSignals] = React.useState<Record<number, boolean>>({});
+
+  const galeMultiplier = getGaleChipMultiplier(currentGaleLevel, bankroll?.management);
+
+  const getSignalBetAndChip = (signal: any) => {
+    const positions = signal.unitsRequired || (signal.entryNumbers ? signal.entryNumbers.length : 1);
+    const management = bankroll?.management;
+    
+    if (currentGaleLevel === 0) {
+      const totalCost = positions * currentBaseChip;
+      return {
+        totalCost,
+        chipSize: currentBaseChip
+      };
+    } else {
+      const hasManual = management?.manualGaleChips && management?.manualGaleChips[currentGaleLevel] !== undefined && management?.manualGaleChips[currentGaleLevel] !== null && management?.manualGaleChips[currentGaleLevel] > 0;
+      if (hasManual) {
+        const manualChip = management.manualGaleChips[currentGaleLevel];
+        return {
+          totalCost: manualChip * currentBaseChip * positions,
+          chipSize: manualChip * currentBaseChip
+        };
+      }
+      
+      const seqBase = sequenceBaseBet !== undefined && sequenceBaseBet > 0 ? sequenceBaseBet : (currentBaseChip * positions);
+      const targetTotal = seqBase * galeMultiplier;
+      const chipSize = targetTotal / positions;
+      const roundedChipSize = Math.max(currentBaseChip, Math.round(chipSize / currentBaseChip) * currentBaseChip);
+      const totalCost = roundedChipSize * positions;
+      
+      return {
+        totalCost,
+        chipSize: roundedChipSize
+      };
+    }
+  };
 
   const toggleExplanation = (idx: number) => {
     setExpandedSignals(prev => ({
@@ -163,15 +247,18 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                 <div className="text-left sm:text-right">
                   <div className={`
                     font-black text-[#c6a34f] leading-none mb-1
-                    ${(signal.entry || '').length > 6 ? 'text-base' : 'text-xl'}
+                    ${(tEntry(signal.entry) || '').length > 6 ? 'text-base' : 'text-xl'}
                   `}>
-                    {signal.entry || ''}
+                    {tEntry(signal.entry) || ''}
                   </div>
-                  {(signal.unitsRequired || (signal.entryNumbers && signal.entryNumbers.length > 0)) ? (
-                    <div className="text-[11px] text-emerald-400 font-mono font-black mb-0.5">
-                      R$ {(((signal.unitsRequired || signal.entryNumbers.length) * currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1))).toFixed(2)} total <span className="text-zinc-400 font-normal">(R$ {(currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1)).toFixed(2)}/núm)</span>
-                    </div>
-                  ) : null}
+                  {(signal.unitsRequired || (signal.entryNumbers && signal.entryNumbers.length > 0)) ? (() => {
+                    const { totalCost, chipSize } = getSignalBetAndChip(signal);
+                    return (
+                      <div className="text-[11px] text-emerald-400 font-mono font-black mb-0.5">
+                        R$ {totalCost.toFixed(2)} total <span className="text-zinc-400 font-normal">(R$ {chipSize.toFixed(2)}/núm)</span>
+                      </div>
+                    );
+                  })() : null}
                   <div className="text-[10px] uppercase tracking-[0.2em] text-[#c6a34f]/70 font-black flex items-center justify-start sm:justify-end gap-1.5">
                     <span>Sugestão de Entrada</span>
                     {currentGaleLevel > 0 && (
@@ -286,7 +373,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                           Fichas Reais para Cobrir no Racetrack:
                         </span>
                         <span className="text-[9px] text-[#c6a34f] font-mono font-bold">
-                          {signal.entryNumbers.length} Números Cobertos • R$ {(signal.entryNumbers.length * currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1)).toFixed(2)} (R$ {(currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1)).toFixed(2)}/núm)
+                          {signal.entryNumbers.length} Números Cobertos • R$ {(signal.entryNumbers.length * currentBaseChip * galeMultiplier).toFixed(2)} (R$ {(currentBaseChip * galeMultiplier).toFixed(2)}/núm)
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1 pt-0.5">
@@ -399,7 +486,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                             Cobertura de Entrada ({det.coveredCount} Números):
                           </span>
                           <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                            {det.unitsRequired} Unidades Necessárias • R$ {(det.unitsRequired * currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1)).toFixed(2)} (R$ {(currentBaseChip * (currentGaleLevel > 0 ? Math.pow(2, currentGaleLevel) : 1)).toFixed(2)}/núm)
+                            {det.unitsRequired} Unidades Necessárias • R$ {(det.unitsRequired * currentBaseChip * galeMultiplier).toFixed(2)} (R$ {(currentBaseChip * galeMultiplier).toFixed(2)}/núm)
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1 pt-0.5">
