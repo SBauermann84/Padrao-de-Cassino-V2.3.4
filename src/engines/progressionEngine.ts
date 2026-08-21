@@ -434,7 +434,16 @@ export const updateProgressionState = (
           currentLevel = 0;
           cycleLoss = 0;
         } else {
-          currentBet = sequenceBaseBet * Math.pow(config.multiplier || 2, currentLevel);
+          const standardMartingaleBet = sequenceBaseBet * Math.pow(config.multiplier || 2, currentLevel);
+          const mathematicalRecoveryBet = calculateStrategyTotalRecoveryBet(cycleLoss, N, initialBet, initialChip, isBaccarat, config.multiplier || 2, currentLevel, targetPayoutRatio);
+          let finalRecBet = Math.max(standardMartingaleBet, mathematicalRecoveryBet);
+          
+          if (!isBaccarat && N > 1) {
+            const rawChip = finalRecBet / N;
+            const roundedUpChip = Math.ceil(Number((rawChip - 0.001).toFixed(4)) / initialChip) * initialChip;
+            finalRecBet = Number((roundedUpChip * N).toFixed(2));
+          }
+          currentBet = finalRecBet;
         }
       } else {
         currentBet = initialBet;
@@ -954,7 +963,16 @@ export const getDynamicBetAndState = (
             currentLevel = 0;
             cycleLoss = 0;
           } else {
-            currentBet = sequenceBaseBet * Math.pow(config.multiplier || 2, currentLevel);
+            const standardMartingaleBet = sequenceBaseBet * Math.pow(config.multiplier || 2, currentLevel);
+            const mathematicalRecoveryBet = calculateStrategyTotalRecoveryBet(cycleLoss, N, initialBet, initialChip, isBaccarat, config.multiplier || 2, currentLevel, targetPayoutRatio);
+            let finalRecBet = Math.max(standardMartingaleBet, mathematicalRecoveryBet);
+            
+            if (!isBaccarat && N > 1) {
+              const rawChip = finalRecBet / N;
+              const roundedUpChip = Math.ceil(Number((rawChip - 0.001).toFixed(4)) / initialChip) * initialChip;
+              finalRecBet = Number((roundedUpChip * N).toFixed(2));
+            }
+            currentBet = finalRecBet;
           }
         } else {
           currentBet = initialBet;

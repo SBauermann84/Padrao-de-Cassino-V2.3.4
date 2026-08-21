@@ -227,7 +227,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                       {signal.source === 'strategy' && (
                         <div className="flex items-center gap-1.5">
                           <span className="bg-yellow-500/20 text-yellow-400 text-[8px] px-1.5 py-0.5 rounded font-black tracking-widest uppercase">Estratégia</span>
-                          <span className="text-xs font-black text-white/50">{signal.winRate}% WR</span>
+                          <span className="text-xs font-black text-white/50">{typeof signal.strategyWinRate === 'number' ? signal.strategyWinRate : signal.winRate}% WR</span>
                         </div>
                       )}
                       {currentGaleLevel > 0 && (
@@ -241,7 +241,41 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-white/55 uppercase font-medium tracking-widest">Confiança: {(signal.confidence || 0).toFixed(0)}%</p>
+                    <p className="text-xs text-white/55 uppercase font-medium tracking-widest">Confiança: {(typeof signal.strategyWinRate === 'number' ? signal.strategyWinRate : (signal.confidence || 0)).toFixed(0)}%</p>
+                    
+                    {/* Unified Real-time Backtest Stats Badge Row */}
+                    {(() => {
+                      const winRateVal = typeof signal.strategyWinRate === 'number' ? signal.strategyWinRate : signal.winRate;
+                      const winsVal = signal.strategyWins ?? signal.tpaDetails?.stats?.wins ?? signal.angelDetails?.stats?.wins;
+                      const lossesVal = signal.strategyLosses ?? signal.tpaDetails?.stats?.losses ?? signal.angelDetails?.stats?.losses;
+                      const roiVal = signal.strategyRoi ?? signal.tpaDetails?.stats?.roi ?? signal.angelDetails?.stats?.roi;
+                      const samplesVal = signal.strategyTotalEntries ?? signal.tpaDetails?.stats?.totalOperations ?? signal.angelDetails?.stats?.totalOperations;
+                      
+                      if (typeof winRateVal !== 'number' && typeof winsVal !== 'number') return null;
+                      
+                      return (
+                        <div className="flex flex-wrap gap-2 mt-2 text-[9.5px] font-mono text-stone-300">
+                          <span className="bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                            Assertividade: <strong className="text-emerald-400 font-bold">{(winRateVal ?? 0).toFixed(1)}%</strong>
+                          </span>
+                          {typeof samplesVal === 'number' && (
+                            <span className="bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                              Amostras: <strong className="text-zinc-350 font-bold">{samplesVal}</strong>
+                            </span>
+                          )}
+                          {typeof roiVal === 'number' && (
+                            <span className="bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                              ROI: <strong className={roiVal >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{roiVal.toFixed(1)}%</strong>
+                            </span>
+                          )}
+                          {typeof winsVal === 'number' && typeof lossesVal === 'number' && (
+                            <span className="bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                              Placar: <strong className="text-[#c6a34f] font-bold">{winsVal}W - {lossesVal}L</strong>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 
@@ -512,31 +546,162 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
 
                     {/* Retrospective continuous statistical performance metrics */}
                     <div className="space-y-2 bg-gradient-to-r from-zinc-950 to-[#181612] p-4 rounded-xl border border-[#c6a34f]/25">
-                      <span className="text-[9px] text-[#c6a34f] uppercase font-black tracking-widest block border-b border-white/10 pb-1.5">
-                        Estatísticas de Desempenho TPA84:
+                      <span className="text-[9px] text-[#c6a34f] uppercase font-black tracking-widest block border-b border-white/10 pb-1.5 flex items-center justify-between">
+                        <span>Estatísticas de Desempenho TPA84:</span>
+                        {typeof signal.strategyWinRate === 'number' && (
+                          <span className="text-[8px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                            Simulação Backtest Ativa
+                          </span>
+                        )}
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-[10px]">
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Operações:</span>
-                          <strong className="text-white font-mono">{det.stats.totalOperations}</strong>
+                          <strong className="text-white font-mono">{typeof signal.strategyTotalEntries === 'number' ? signal.strategyTotalEntries : det.stats.totalOperations}</strong>
                         </div>
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Assertividade:</span>
-                          <strong className="text-emerald-400 font-mono">{det.stats.winRate.toFixed(1)}%</strong>
+                          <strong className="text-emerald-400 font-mono">{typeof signal.strategyWinRate === 'number' ? signal.strategyWinRate.toFixed(1) : det.stats.winRate.toFixed(1)}%</strong>
                         </div>
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">ROI / EV:</span>
-                          <strong className="text-white font-mono">+{det.stats.roi.toFixed(1)}% / {det.stats.ev.toFixed(2)}u</strong>
+                          <strong className="text-white font-mono">+{typeof signal.strategyRoi === 'number' ? signal.strategyRoi.toFixed(1) : det.stats.roi.toFixed(1)}% / {det.stats.ev.toFixed(2)}u</strong>
                         </div>
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Max Drawdown:</span>
-                          <strong className="text-red-400 font-mono">{det.stats.maxDrawdown}u</strong>
+                          <strong className="text-red-400 font-mono">{typeof signal.strategyMaxDrawdown === 'number' ? `${signal.strategyMaxDrawdown.toFixed(1)} u` : `${det.stats.maxDrawdown} u`}</strong>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] pt-1">
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">WIN / LOSS:</span>
-                          <strong className="text-white font-mono">{det.stats.wins}W / {det.stats.losses}L</strong>
+                          <strong className="text-white font-mono">
+                            {typeof signal.strategyWins === 'number' && typeof signal.strategyLosses === 'number' 
+                              ? `${signal.strategyWins}W / ${signal.strategyLosses}L` 
+                              : `${det.stats.wins}W / ${det.stats.losses}L`}
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Profit Factor:</span>
+                          <strong className="text-emerald-400 font-mono">{det.stats.profitFactor.toFixed(2)}</strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Max Seq. WIN:</span>
+                          <strong className="text-emerald-400 font-mono">{det.stats.maxWinsSeq}</strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Max Seq. LOSS:</span>
+                          <strong className="text-red-400 font-mono">{det.stats.maxLossesSeq}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })()}
+
+              {/* Angel84 detailed technical presentation */}
+              {signal.isAngel84 && signal.angelDetails && (() => {
+                const det = signal.angelDetails;
+                return (
+                  <div className="border-t border-white/5 pt-3.5 space-y-4 text-stone-200">
+                    
+                    {/* Selected Terminals & Classification */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-3.5 rounded-xl border border-white/5">
+                      <div>
+                        <span className="text-white/40 block text-[8px] font-bold uppercase tracking-wider">Terminais de Entrada:</span>
+                        <div className="text-sm font-black text-white mt-1">
+                          Terminais <span className="text-[#c6a34f]">{det.selectedTerminals.join(', ')}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block text-[8px] font-bold uppercase tracking-wider">Classificação / Repetição:</span>
+                        <div className="text-sm font-extrabold text-amber-400 mt-1 flex items-center gap-1.5">
+                          <span>Estratégia Ativa</span>
+                          {det.hasRepeatedTerminals && (
+                            <span className="bg-red-500/20 border border-red-500/30 text-red-400 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
+                              Repetição Ativa ⚠️
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Motivo Técnico */}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] text-stone-300 font-medium leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5">
+                        <span className="text-[#c6a34f] font-black uppercase tracking-wider block text-[8px] mb-0.5">Fundamentação Analítica:</span>
+                        {det.reason}
+                      </p>
+                    </div>
+
+                    {/* Target numbers chips */}
+                    {det.entryNumbers && det.entryNumbers.length > 0 && (
+                      <div className="space-y-2 bg-black/20 p-3.5 rounded-xl border border-white/5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] text-white/40 uppercase font-black tracking-widest block">
+                            Cobertura de Entrada ({det.coveredCount} Números):
+                          </span>
+                          <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                            {det.unitsRequired} Unidades Necessárias • R$ {getSignalBetAndChip({ ...signal, unitsRequired: det.unitsRequired }).totalCost.toFixed(2)} (R$ {getSignalBetAndChip({ ...signal, unitsRequired: det.unitsRequired }).chipSize.toFixed(2)}/núm)
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {det.entryNumbers.map((n: number, i: number) => {
+                            const isRed = COLOR_MAP.ROULETTE.RED.includes(n);
+                            const getChipBg = (num: number) => {
+                              if (num === 0) return 'bg-[#10b981] text-white';
+                              return isRed ? 'bg-[#ef4444] text-white' : 'bg-zinc-900 border border-white/10 text-stone-200';
+                            };
+                            return (
+                              <span 
+                                key={i} 
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 select-none ${getChipBg(n)} shadow-sm`}
+                              >
+                                {n}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Retrospective continuous statistical performance metrics */}
+                    <div className="space-y-2 bg-gradient-to-r from-zinc-950 to-[#181612] p-4 rounded-xl border border-[#c6a34f]/25">
+                      <span className="text-[9px] text-[#c6a34f] uppercase font-black tracking-widest block border-b border-white/10 pb-1.5 flex items-center justify-between">
+                        <span>Estatísticas de Desempenho Angel84:</span>
+                        {typeof signal.strategyWinRate === 'number' && (
+                          <span className="text-[8px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                            Simulação Backtest Ativa
+                          </span>
+                        )}
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-[10px]">
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Operações:</span>
+                          <strong className="text-white font-mono">{typeof signal.strategyTotalEntries === 'number' ? signal.strategyTotalEntries : det.stats.totalOperations}</strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Assertividade:</span>
+                          <strong className="text-emerald-400 font-mono">{typeof signal.strategyWinRate === 'number' ? signal.strategyWinRate.toFixed(1) : det.stats.winRate.toFixed(1)}%</strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">ROI / EV:</span>
+                          <strong className="text-white font-mono">+{typeof signal.strategyRoi === 'number' ? signal.strategyRoi.toFixed(1) : det.stats.roi.toFixed(1)}% / {det.stats.ev.toFixed(2)}u</strong>
+                        </div>
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Max Drawdown:</span>
+                          <strong className="text-red-400 font-mono">{typeof signal.strategyMaxDrawdown === 'number' ? `${signal.strategyMaxDrawdown.toFixed(1)} u` : `${det.stats.maxDrawdown} u`}</strong>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] pt-1">
+                        <div>
+                          <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">WIN / LOSS:</span>
+                          <strong className="text-white font-mono">
+                            {typeof signal.strategyWins === 'number' && typeof signal.strategyLosses === 'number' 
+                              ? `${signal.strategyWins}W / ${signal.strategyLosses}L` 
+                              : `${det.stats.wins}W / ${det.stats.losses}L`}
+                          </strong>
                         </div>
                         <div>
                           <span className="text-white/40 block text-[7px] font-bold uppercase tracking-wider">Profit Factor:</span>

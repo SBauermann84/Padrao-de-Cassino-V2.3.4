@@ -834,11 +834,11 @@ export default function App() {
   // Memoized evaluated strategies to prevent CPU-intensive backtests during render loops
   const evaluatedStrategies = React.useMemo(() => {
     return (strategies || []).map(strat => {
-      // Use game-specific history and slice to maximum 200 entries to run instantly with zero UI lag
+      // Use game-specific history and run on the full history of the current session for maximum statistical precision
       const relevantHistory = strat.gameType === GameType.ROULETTE 
         ? (historyRoulette || [])
         : (historyBaccarat || []);
-      const slicedHistory = (relevantHistory || []).slice(0, 200);
+      const slicedHistory = relevantHistory || [];
       const customManagement = {
         ...bankroll.management,
         mode: selectedBacktestManagementMode,
@@ -860,11 +860,17 @@ export default function App() {
       const winRate = isTested ? fullPerformance.winRate : (strat.performance?.winRate || 0);
       const totalEntries = isTested ? (fullPerformance.wins + fullPerformance.losses) : (strat.performance?.totalEntries || 0);
       const roi = isTested ? fullPerformance.roi : (strat.performance?.roi || 0);
+      const wins = isTested ? fullPerformance.wins : (strat.performance?.wins || 0);
+      const losses = isTested ? fullPerformance.losses : (strat.performance?.losses || 0);
+      const maxDrawdown = isTested ? fullPerformance.maxDrawdown : (strat.performance?.maxDrawdown || 0);
       return {
         strat,
         winRate,
         totalEntries,
         roi,
+        wins,
+        losses,
+        maxDrawdown,
         isTested
       };
     });
@@ -1486,6 +1492,11 @@ export default function App() {
       return {
         ...sig,
         strategyWinRate: winRate,
+        strategyWins: evalStrat ? evalStrat.wins : undefined,
+        strategyLosses: evalStrat ? evalStrat.losses : undefined,
+        strategyRoi: evalStrat ? evalStrat.roi : undefined,
+        strategyTotalEntries: evalStrat ? evalStrat.totalEntries : undefined,
+        strategyMaxDrawdown: evalStrat ? evalStrat.maxDrawdown : undefined,
         unitsRequired: units
       };
     });
@@ -3907,7 +3918,7 @@ export default function App() {
                                    </div>
                                    <h4 className="text-xs font-bold text-white truncate">{item.strat.name}</h4>
                                    <div className="flex items-center gap-2 text-[8px] text-white/40 uppercase font-mono">
-                                     <span>Amostras: {item.totalEntries}</span>
+                                     <span>Amostras: {item.totalEntries} ({item.wins}W - {item.losses}L)</span>
                                      <span>•</span>
                                      <span className="text-green-400">ROI: +{item.roi.toFixed(1)}%</span>
                                    </div>
@@ -4073,7 +4084,7 @@ export default function App() {
                              <div className="flex items-center gap-4 shrink-0">
                                <div className="text-right font-mono">
                                  <div className="text-xs font-black text-[#c6a34f]">{item.winRate.toFixed(1)}%</div>
-                                 <div className="text-[8px] text-white/40 uppercase">{item.totalEntries} entradas | ROI: {item.roi.toFixed(1)}%</div>
+                                 <div className="text-[8px] text-white/40 uppercase">{item.totalEntries} entradas ({item.wins}W - {item.losses}L) | ROI: {item.roi.toFixed(1)}%</div>
                                </div>
 
                                <div className="flex items-center gap-1.5">
@@ -4332,7 +4343,7 @@ export default function App() {
                                        {item.winRate.toFixed(1)}%
                                      </div>
                                      <div className="text-[8px] text-white/40 uppercase font-mono">
-                                       Total: {item.totalEntries} amostras | ROI: <span className={item.roi >= 0 ? 'text-green-400' : 'text-red-400'}>{item.roi.toFixed(1)}%</span>
+                                       Total: {item.totalEntries} amostras ({item.wins}W - {item.losses}L) | ROI: <span className={item.roi >= 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>{item.roi.toFixed(1)}%</span>
                                      </div>
                                   </div>
                                   
