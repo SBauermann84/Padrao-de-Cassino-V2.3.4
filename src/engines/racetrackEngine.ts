@@ -223,7 +223,7 @@ export const racetrackEngine = {
           strength,
           confidence,
           activeRegion,
-          entry: `Terminal ${def.terminal} + Vizinhos no Racetrack`,
+          entry: `Terminal ${def.terminal} + 1 Vizinho`,
           entryNumbers: def.entryNumbers,
           coveredCount: def.entryNumbers.length,
           sectorAnalysis,
