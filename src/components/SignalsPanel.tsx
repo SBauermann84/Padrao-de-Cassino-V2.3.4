@@ -6,6 +6,7 @@ import { COLOR_MAP } from '../constants';
 import { useAppStore } from '../store/useAppStore';
 import { getStrategyExplanation } from '../engines/dynamicStrategyEngine';
 import { useTranslation } from '../locales/translations';
+import { getPositionCountForSignal } from '../engines/progressionEngine';
 
 interface SignalsPanelProps {
   signals: any[];
@@ -75,7 +76,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
   const galeMultiplier = getGaleChipMultiplier(currentGaleLevel, bankroll?.management);
 
   const getSignalBetAndChip = (signal: any) => {
-    const positions = signal.unitsRequired || (signal.entryNumbers ? signal.entryNumbers.length : 1);
+    const positions = getPositionCountForSignal(signal);
     const management = bankroll?.management;
     
     if (currentGaleLevel === 0) {
@@ -373,7 +374,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                           Fichas Reais para Cobrir no Racetrack:
                         </span>
                         <span className="text-[9px] text-[#c6a34f] font-mono font-bold">
-                          {signal.entryNumbers.length} Números Cobertos • R$ {(signal.entryNumbers.length * currentBaseChip * galeMultiplier).toFixed(2)} (R$ {(currentBaseChip * galeMultiplier).toFixed(2)}/núm)
+                          {signal.entryNumbers.length} Números Cobertos • R$ {getSignalBetAndChip(signal).totalCost.toFixed(2)} (R$ {getSignalBetAndChip(signal).chipSize.toFixed(2)}/núm)
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1 pt-0.5">
@@ -486,7 +487,7 @@ const SignalsPanel: React.FC<SignalsPanelProps> = ({ signals, winRate = 0, strat
                             Cobertura de Entrada ({det.coveredCount} Números):
                           </span>
                           <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                            {det.unitsRequired} Unidades Necessárias • R$ {(det.unitsRequired * currentBaseChip * galeMultiplier).toFixed(2)} (R$ {(currentBaseChip * galeMultiplier).toFixed(2)}/núm)
+                            {det.unitsRequired} Unidades Necessárias • R$ {getSignalBetAndChip({ ...signal, unitsRequired: det.unitsRequired }).totalCost.toFixed(2)} (R$ {getSignalBetAndChip({ ...signal, unitsRequired: det.unitsRequired }).chipSize.toFixed(2)}/núm)
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1 pt-0.5">

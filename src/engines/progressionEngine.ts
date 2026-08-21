@@ -1613,51 +1613,110 @@ export const getOverrideChipForSignal = (sig: any, config: ManagementConfig): nu
 export const getPositionCountForSignal = (sig: any): number => {
   if (!sig) return 11;
 
-  // 1:1 simple chances & 2:1 dozens/columns MUST be checked FIRST
-  // because even if they are in a custom strategy, if the entry recommended is a simple chance,
-  // it is a 1-position bet on the layout!
-  if (sig.entry) {
-    const ent = String(sig.entry).toLowerCase().trim();
-    if (
-      ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
-      ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' ||
-      ent === 'maior' || ent === 'menor' || ent === 'player' || ent === 'banker' || ent === 'tie' ||
-      ent === 'jogador' || ent === 'banca' || ent === 'empate' ||
-      ent.includes('red') || ent.includes('black') ||
-      ent.includes('vermelho') || ent.includes('preto') || ent.includes('par') || ent.includes('impar') ||
-      ent.includes('ímpar') || ent.includes('even') || ent.includes('odd') || ent.includes('high') ||
-      ent.includes('low') || ent.includes('maior') || ent.includes('menor') ||
-      ent.includes('dúzia') || ent.includes('duzia') || ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36') ||
-      ent.includes('player') || ent.includes('banker') || ent.includes('tie') ||
-      ent.includes('jogador') || ent.includes('banca') || ent.includes('empate')
-    ) {
-      return 1;
-    }
+  if (sig.gameType === GameType.BACCARAT) {
+    return 1;
   }
 
-  if (sig.unitsRequired !== undefined) return sig.unitsRequired;
-  if (sig.entryNumbers && sig.entryNumbers.length > 0) return sig.entryNumbers.length;
-  if (!sig.entry) return 11;
+  const ent = sig.entry ? String(sig.entry).toLowerCase().trim() : '';
+  const pat = sig.patternName ? String(sig.patternName).toLowerCase().trim() : '';
+  const cat = sig.category ? String(sig.category).toLowerCase().trim() : '';
+  const desc = sig.description ? String(sig.description).toLowerCase().trim() : '';
+  const stratId = sig.strategyId ? String(sig.strategyId).toLowerCase().trim() : '';
 
-  const ent = String(sig.entry).toLowerCase().trim();
+  // 1. External Bets / Traditional Table Bets (Red, Black, Even, Odd, High, Low, Dozens, Columns, etc.)
+  // These are single bet spots on the layout, costing exactly 1 chip.
+  const isExternalOrSimple = 
+    ent === 'odd' || ent === 'even' || ent === 'red' || ent === 'black' || ent === 'high' || ent === 'low' ||
+    ent === 'ímpar' || ent === 'impar' || ent === 'par' || ent === 'vermelho' || ent === 'preto' ||
+    ent === 'maior' || ent === 'menor' || ent === 'player' || ent === 'banker' || ent === 'tie' ||
+    ent === 'jogador' || ent === 'banca' || ent === 'empate' ||
+    ent.includes('red') || ent.includes('black') ||
+    ent.includes('vermelho') || ent.includes('preto') || 
+    ent.includes('par') || ent.includes('impar') || ent.includes('ímpar') || 
+    ent.includes('even') || ent.includes('odd') || 
+    ent.includes('high') || ent.includes('low') || 
+    ent.includes('maior') || ent.includes('menor') ||
+    ent.includes('dúzia') || ent.includes('duzia') || 
+    ent.includes('coluna') || ent.includes('1-12') || ent.includes('13-24') || ent.includes('25-36') ||
+    ent.includes('player') || ent.includes('banker') || ent.includes('tie') ||
+    ent.includes('jogador') || ent.includes('banca') || ent.includes('empate') ||
+    cat.includes('externa') || cat.includes('dozen') || cat.includes('coluna') || cat.includes('dúzia');
 
-  if (ent.includes('pleno')) {
-    return 11;
+  if (isExternalOrSimple) {
+    return 1;
   }
-  if (ent.includes('terminal')) {
-    return 4;
+
+  // 2. Racetrack Regions / Sectors (French bets: Voisins, Tiers, Orphelins, Zero Spiel)
+  // Voisins du Zéro covers 17 numbers with 9 chips
+  // Tiers du Cylindre covers 12 numbers with 6 chips
+  // Orphelins covers 8 numbers with 5 chips
+  // Zero Spiel covers 7 numbers with 4 chips
+  const isVoisins = ent.includes('voisins') || ent.includes('vizinhos de zero') || ent.includes('vizinhos do zero') || pat.includes('voisins') || pat.includes('vizinhos de zero') || pat.includes('vizinhos do zero') || desc.includes('voisins') || desc.includes('vizinhos de zero') || desc.includes('vizinhos do zero');
+  const isTiers = ent.includes('tiers') || ent.includes('terço') || ent.includes('terco') || pat.includes('tiers') || pat.includes('terço') || pat.includes('terco') || desc.includes('tiers') || desc.includes('terço') || desc.includes('terco');
+  const isOrphelins = ent.includes('orphelins') || ent.includes('órfãos') || ent.includes('orfaos') || pat.includes('orphelins') || pat.includes('órfãos') || pat.includes('orfaos') || desc.includes('orphelins') || desc.includes('órfãos') || desc.includes('orfaos');
+  const isZeroSpiel = ent.includes('zero spiel') || ent.includes('jogo do zero') || ent.includes('jogo de zero') || ent.includes('du zero') || pat.includes('zero spiel') || pat.includes('jogo do zero') || pat.includes('jogo de zero') || pat.includes('du zero') || desc.includes('zero spiel') || desc.includes('jogo do zero') || desc.includes('jogo de zero') || desc.includes('du zero');
+
+  if (isVoisins) {
+    return 9;
   }
-  if (ent.includes('dividida')) {
-    return 2;
-  }
-  if (ent.includes('rua')) {
-    return 3;
-  }
-  if (ent.includes('canto')) {
-    return 4;
-  }
-  if (ent.includes('linha')) {
+  if (isTiers) {
     return 6;
+  }
+  if (isOrphelins) {
+    return 5;
+  }
+  if (isZeroSpiel) {
+    return 4;
+  }
+
+  // 3. Numbers and Neighbors / Terminals and Neighbors / Racetrack Neighbors
+  // Pleno and neighbors (e.g. Pleno 19 + 5 Vizinhos = 11 numbers covered, costing 11 chips)
+  if (ent.includes('pleno')) {
+    if (sig.entryNumbers && sig.entryNumbers.length > 0) {
+      return sig.entryNumbers.length;
+    }
+    return 11; // Standard "Pleno + 5 neighbors" = 11 numbers/chips
+  }
+
+  // Terminals (Terminais) and neighbors
+  if (ent.includes('terminal') || pat.includes('terminal') || cat.includes('terminal')) {
+    if (sig.entryNumbers && sig.entryNumbers.length > 0) {
+      return sig.entryNumbers.length;
+    }
+    if (stratId.includes('s84') || pat.includes('s84')) {
+      return 11; // Terminal S84 covers 11 numbers
+    }
+    return 4; // Standard terminal covers 4 numbers on average (e.g. 3, 13, 23, 33)
+  }
+
+  // Racetrack neighbors
+  if (sig.isRacetrackNeighbor || pat.includes('neighbor') || pat.includes('vizinho')) {
+    if (sig.entryNumbers && sig.entryNumbers.length > 0) {
+      return sig.entryNumbers.length;
+    }
+    return 5;
+  }
+
+  if (sig.entryNumbers && sig.entryNumbers.length > 0) {
+    return sig.entryNumbers.length;
+  }
+
+  if (sig.unitsRequired !== undefined && sig.unitsRequired > 0) {
+    return sig.unitsRequired;
+  }
+
+  // Fallbacks for layout positions (Split, Street, Corner, Line) costing 1 chip
+  if (ent.includes('dividida') || ent.includes('split')) {
+    return 1;
+  }
+  if (ent.includes('rua') || ent.includes('street')) {
+    return 1;
+  }
+  if (ent.includes('canto') || ent.includes('corner')) {
+    return 1;
+  }
+  if (ent.includes('linha') || ent.includes('line') || ent.includes('seisena')) {
+    return 1;
   }
 
   return 11;

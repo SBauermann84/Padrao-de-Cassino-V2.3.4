@@ -618,13 +618,31 @@ const RouletteInput: React.FC<RouletteInputProps> = ({
                   {confirmedSignal.patternName}
                 </h5>
                 <p className="text-[10px] md:text-[11px] text-zinc-300 truncate mt-0.5">
-                  {confirmedCoverage ? (
+                  {currentState.currentLevel === 0 ? (
                     <>
-                      Apostar <strong className="text-[#c6a34f] font-mono font-black">R$ {confirmedCoverage.actualTotalCost.toFixed(2)} total</strong> (R$ {confirmedCoverage.individualBetSize.toFixed(2)}/núm) na opção:{' '}
+                      Entrada G0: Entrada Inicial: Apostar{' '}
+                      <strong className="text-[#c6a34f] font-mono font-black">
+                        R$ {confirmedCoverage ? confirmedCoverage.actualTotalCost.toFixed(2) : currentBet.toFixed(2)}
+                      </strong>{' '}
+                      {confirmedCoverage && (
+                        <span className="text-[9px] text-zinc-400">
+                          (R$ {confirmedCoverage.individualBetSize.toFixed(2)}/núm)
+                        </span>
+                      )}{' '}
+                      na opção:{' '}
                     </>
                   ) : (
                     <>
-                      Apostar <strong className="text-[#c6a34f] font-mono font-black">R$ {currentBet.toFixed(2)}</strong> na opção:{' '}
+                      GALE G{currentState.currentLevel}: Apostar{' '}
+                      <strong className="text-[#c6a34f] font-mono font-black">
+                        R$ {confirmedCoverage ? confirmedCoverage.actualTotalCost.toFixed(2) : currentBet.toFixed(2)}
+                      </strong>{' '}
+                      {confirmedCoverage && (
+                        <span className="text-[9px] text-zinc-400">
+                          (R$ {confirmedCoverage.individualBetSize.toFixed(2)}/núm)
+                        </span>
+                      )}{' '}
+                      na opção:{' '}
                     </>
                   )}
                   <span className="text-white underline decoration-amber-500/30 font-bold">{tEntry(confirmedSignal.entry)}</span>
@@ -638,14 +656,14 @@ const RouletteInput: React.FC<RouletteInputProps> = ({
             </div>
           </div>
 
-          {/* INFORMAÇÃO DE VALOR POR NÚMERO */}
+          {/* INFORMAÇÃO DE VALOR DA FICHA */}
           <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between gap-2 bg-black/20 p-2 rounded-lg">
             <div className="flex items-center gap-1.5">
               <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-widest">
-                {activeLevelIdx === 0 ? 'Entrada Base' : `Gale G${activeLevelIdx}`}:
+                {activeLevelIdx === 0 ? 'Ficha Base' : `Ficha Gale G${activeLevelIdx}`}:
               </span>
               <span className="text-xs font-mono font-black text-white">
-                R$ {activeLevelChip.toFixed(2)} / núm
+                R$ {activeLevelChip.toFixed(2)}
               </span>
             </div>
           </div>

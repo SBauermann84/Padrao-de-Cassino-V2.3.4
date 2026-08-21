@@ -1630,15 +1630,42 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
           <div className="flex flex-col gap-1">
             {/* Zero */}
             <div className="relative">
-               <button
-                onClick={() => handleToggleBet(0, 'number')}
-                className={`w-[200px] h-14 flex flex-col items-center justify-center rounded-t-[40px] border-2 transition-all relative ${
-                  getBetAmount(0, 'number') > 0 ? 'bg-green-600 border-white text-white' : 'bg-green-900/40 border-green-500/20 text-green-500'
-                }`}
-              >
-                <span className="text-lg font-black">0</span>
-                <SmallChip amount={getBetAmount(0, 'number')} />
-              </button>
+               {(() => {
+                 const amount = getBetAmount(0, 'number');
+                 const profit = calculatePayout(0);
+                 const type = getResultType(0);
+                 const payout = profit + totalBet;
+                 const typeStyles = {
+                   jackpot: 'bg-gradient-to-br from-[#c6a34f] via-[#ffd700] to-[#b8953f] border-amber-300 text-black shadow-[0_0_25px_rgba(198,163,79,0.8)] z-10 font-black ring-2 ring-amber-300',
+                   profit: 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 ring-1 ring-emerald-300',
+                   tie: 'bg-zinc-800 border-zinc-650 text-zinc-300 shadow-[0_0_10px_rgba(255,255,255,0.05)] z-10 ring-1 ring-zinc-500',
+                   partial: 'bg-gradient-to-br from-red-900/95 to-red-800/80 border-red-500/85 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)] z-10',
+                   loss: 'bg-green-600 border-white/10 text-white opacity-45',
+                   none: 'bg-green-900/40 border-green-500/20 text-green-500'
+                 }[type];
+
+                 return (
+                   <button
+                     onClick={() => handleToggleBet(0, 'number')}
+                     className={`w-[200px] h-14 flex flex-col items-center justify-center rounded-t-[40px] border-2 transition-all relative ${
+                       amount > 0 && type !== 'jackpot' ? 'ring-2 ring-white z-10' : 'hover:brightness-125'
+                     } ${typeStyles}`}
+                   >
+                     <span className="text-lg font-black">0</span>
+                     <SmallChip amount={amount} />
+                     {totalBet > 0 && payout > 0 && (
+                       <div className={`absolute -bottom-2 inset-x-12 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-lg z-20 border border-white/10 ${
+                         type === 'jackpot' ? 'bg-[#c6a34f] text-black border-amber-300' :
+                         type === 'profit' ? 'bg-emerald-600 text-white border-emerald-400' :
+                         type === 'tie' ? 'bg-zinc-700 text-zinc-100 border-zinc-500' :
+                         'bg-red-650 text-white border-red-500'
+                       }`}>
+                         {profit > 0 ? `+${profit.toFixed(1)} U` : profit === 0 ? '0.0 U' : `${profit.toFixed(1)} U`}
+                       </div>
+                     )}
+                   </button>
+                 );
+               })()}
               {/* Split between 0 and first row [1,2,3] */}
               <div className="absolute -bottom-2 inset-x-0 h-4 flex justify-around pointer-events-none z-50">
                  {[1, 2, 3].map(n => (
@@ -1689,7 +1716,7 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
                           profit: 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 ring-1 ring-emerald-300',
                           tie: 'bg-zinc-800 border-zinc-650 text-zinc-300 shadow-[0_0_10px_rgba(255,255,255,0.05)] z-10 ring-1 ring-zinc-500',
                           partial: 'bg-gradient-to-br from-red-900/95 to-red-800/80 border-red-500/85 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)] z-10',
-                          loss: 'bg-red-950/50 border-red-900/40 text-red-400/50 hover:bg-red-950/70',
+                          loss: isRed ? 'bg-red-600 border-white/10 text-white opacity-45' : 'bg-zinc-900 border-white/10 text-white opacity-45',
                           none: isRed ? 'bg-red-600 border-white/10 text-white hover:bg-red-500' : 'bg-zinc-900 border-white/10 text-white hover:bg-zinc-850'
                         }[type];
 
@@ -1776,7 +1803,7 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
         profit: 'bg-emerald-600 border-emerald-400 text-white z-10 shadow-[0_0_15px_rgba(16,185,129,0.5)] ring-1 ring-emerald-300',
         tie: 'bg-zinc-800 border-zinc-650 text-zinc-300 shadow-[0_0_10px_rgba(255,255,255,0.05)] z-10 ring-1 ring-zinc-500',
         partial: 'bg-gradient-to-br from-red-900/95 to-red-800/80 border-red-500/85 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)] z-10',
-        loss: 'bg-red-950/50 border-red-900/40 text-red-400/50 hover:bg-red-950/70',
+        loss: num === 0 ? 'bg-[#00a651] border-white/10 text-white opacity-45' : isRed ? 'bg-[#e30613] border-white/10 text-white opacity-45' : 'bg-[#1a1a1a] border-white/10 text-white/95 opacity-45',
         none: num === 0 ? 'bg-[#00a651] border-white/10 text-white hover:bg-[#00c862]' : isRed ? 'bg-[#e30613] border-white/10 text-white hover:bg-[#f51c2a]' : 'bg-[#1a1a1a] border-white/10 text-white/95 hover:bg-[#2a2a2a]'
       }[type];
 

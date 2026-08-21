@@ -180,7 +180,17 @@ const OtherGameInput: React.FC<OtherGameInputProps> = ({
                 {activeSignal.patternName}
               </h5>
               <p className="text-xs md:text-[13px] text-zinc-300 mt-1 font-medium">
-                Apostar <strong className="text-[#c6a34f] font-mono font-black text-base">R$ {currentBet.toFixed(2)}</strong> na casa:{' '}
+                {currentState.currentLevel === 0 ? (
+                  <>
+                    Entrada G0: Entrada Inicial: Apostar{' '}
+                    <strong className="text-[#c6a34f] font-mono font-black text-base">R$ {currentBet.toFixed(2)}</strong> na casa:{' '}
+                  </>
+                ) : (
+                  <>
+                    GALE G{currentState.currentLevel}: Apostar{' '}
+                    <strong className="text-[#c6a34f] font-mono font-black text-base">R$ {currentBet.toFixed(2)}</strong> na casa:{' '}
+                  </>
+                )}
                 <strong className="text-white uppercase underline decoration-amber-500/40 font-black">{tEntry(activeSignal.entry)}</strong>
               </p>
             </div>
