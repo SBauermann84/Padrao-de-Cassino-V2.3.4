@@ -93,7 +93,20 @@ export const runSingleBacktestSimulation = (
   const enrichedStrategy = { ...strategy, rules: enrichedRules };
 
   const relevantHistory = [...history].reverse().filter(h => h.gameType === strategy.gameType);
-  if (relevantHistory.length < 5) {
+  
+  // Determine minimum history required dynamically based on the strategy type
+  let minHistoryRequired = 2;
+  if (strategy.id === 'system-roulette-tpa84') {
+    minHistoryRequired = 3;
+  } else if (strategy.id === 'system-roulette-racetrack') {
+    minHistoryRequired = 4;
+  } else if (strategy.id === 'system-roulette-angel84') {
+    minHistoryRequired = 12;
+  } else if (strategy.id.includes('historical-base') || strategy.id.includes('delay') || strategy.id.includes('probability')) {
+    minHistoryRequired = 10;
+  }
+
+  if (relevantHistory.length < minHistoryRequired) {
     return {
       winRate: 0, wins: 0, losses: 0, totalProfit: 0, maxDrawdown: 0, maxConsecutiveLosses: 0,
       absoluteMaxGaleNeeded: 0,
@@ -115,7 +128,7 @@ export const runSingleBacktestSimulation = (
   // Local helper stats for historical-base strategies
   const sequenceStats: Record<string, Record<string, number>> = {};
 
-  const startIndex = strategy.id.includes('historical-base') || strategy.id.includes('delay') || strategy.id.includes('probability') ? 10 : 5;
+  const startIndex = minHistoryRequired;
 
   for (let i = startIndex; i < relevantHistory.length; i++) {
     const startIdx = Math.max(0, i - 30);

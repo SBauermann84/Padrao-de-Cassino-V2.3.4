@@ -847,10 +847,12 @@ export default function App() {
               ? backtestInitialBet * 22
               : strat.id === 'system-roulette-racetrack'
                 ? backtestInitialBet * 11
-                : backtestInitialBet)
+                : strat.id === 'system-roulette-angel84'
+                  ? backtestInitialBet * 25
+                  : backtestInitialBet)
           : backtestInitialBet,
         multiplier: strat.gameType === GameType.ROULETTE
-          ? (strat.id === 'system-roulette-tpa84' || strat.id === 'system-roulette-racetrack'
+          ? (strat.id === 'system-roulette-tpa84' || strat.id === 'system-roulette-racetrack' || strat.id === 'system-roulette-angel84'
               ? 2
               : bankroll.management.multiplier)
           : bankroll.management.multiplier
