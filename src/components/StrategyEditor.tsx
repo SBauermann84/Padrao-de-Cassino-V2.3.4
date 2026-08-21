@@ -138,7 +138,7 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
   const [maxDelay, setMaxDelay] = useState<number>(initialTriggerConfig.maxDelay || 0);
   const [minFrequency, setMinFrequency] = useState<number>(initialTriggerConfig.minFrequency || 0);
   const [frequencyWindow, setFrequencyWindow] = useState<number>(initialTriggerConfig.frequencyWindow || 10);
-  const [statCriterion, setStatCriterion] = useState<'manual' | 'maior_ausencia' | 'maior_frequencia'>(initialTriggerConfig.statCriterion || 'manual');
+  const [statCriterion, setStatCriterion] = useState<'manual' | 'maior_ausencia' | 'maior_frequencia'>('manual');
   const [analysisWindow, setAnalysisWindow] = useState<number>(initialTriggerConfig.analysisWindow || 30);
   
   const [useRacetrackConfluence, setUseRacetrackConfluence] = useState<boolean>(initialTriggerConfig.useRacetrackConfluence || false);
@@ -399,7 +399,7 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
         if (tc.maxDelay !== undefined) setMaxDelay(tc.maxDelay);
         if (tc.minFrequency !== undefined) setMinFrequency(tc.minFrequency);
         if (tc.frequencyWindow !== undefined) setFrequencyWindow(tc.frequencyWindow);
-        if (tc.statCriterion) setStatCriterion(tc.statCriterion);
+        setStatCriterion('manual');
         if (tc.analysisWindow !== undefined) setAnalysisWindow(tc.analysisWindow);
         if (tc.useRacetrackConfluence !== undefined) setUseRacetrackConfluence(tc.useRacetrackConfluence);
         if (tc.confluenceType) setConfluenceType(tc.confluenceType);
@@ -2912,48 +2912,12 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
                 {/* Critério Estatístico & Janela de Análise */}
                 <div className="space-y-3 bg-black/40 p-4 rounded-xl border border-white/5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase font-bold text-[#c6a34f] tracking-wider">Critério do Gatilho</span>
+                    <span className="text-xs uppercase font-bold text-[#c6a34f] tracking-wider">Janela de Análise</span>
                     <span className="text-xs font-mono text-white/50 uppercase">Análise Estatística</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 bg-black p-1.5 rounded-lg border border-white/5">
-                    <button
-                      type="button"
-                      onClick={() => setStatCriterion('manual')}
-                      className={`py-2 px-2 rounded text-xs font-bold uppercase transition-all ${
-                        statCriterion === 'manual'
-                          ? 'bg-[#c6a34f] text-black shadow-md'
-                          : 'text-white/50 hover:text-white'
-                      }`}
-                    >
-                      Manual / Fixo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStatCriterion('maior_ausencia')}
-                      className={`py-2 px-2 rounded text-xs font-bold uppercase transition-all ${
-                        statCriterion === 'maior_ausencia'
-                          ? 'bg-amber-500 text-black shadow-md'
-                          : 'text-white/50 hover:text-white'
-                      }`}
-                    >
-                      Maior Ausência
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStatCriterion('maior_frequencia')}
-                      className={`py-2 px-2 rounded text-xs font-bold uppercase transition-all ${
-                        statCriterion === 'maior_frequencia'
-                          ? 'bg-emerald-500 text-black shadow-md'
-                          : 'text-white/50 hover:text-white'
-                      }`}
-                    >
-                      Maior Frequência
-                    </button>
-                  </div>
-
                   {/* Janela de Análise (Últimas Rodadas) */}
-                  <div className="space-y-2 pt-2 border-t border-white/5">
+                  <div className="space-y-2 pt-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs uppercase tracking-wider text-white/60 font-bold">Últimas Rodadas (Janela de Análise)</span>
                       <span className="text-xs font-mono font-bold text-[#c6a34f]">{analysisWindow} rodadas</span>
@@ -2975,29 +2939,15 @@ const StrategyEditor: React.FC<StrategyEditorProps> = ({ strategy, onSave, onCan
                       ))}
                       <input
                         type="number"
-                        min="5"
+                        min="1"
                         max="200"
                         value={analysisWindow}
-                        onChange={(e) => setAnalysisWindow(Math.max(5, Math.min(200, Number(e.target.value))))}
+                        onChange={(e) => setAnalysisWindow(Math.max(1, Math.min(200, Number(e.target.value))))}
                         className="w-14 bg-[#0a0a0a] border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-center text-white outline-none focus:border-[#c6a34f]/50"
                       />
                     </div>
                   </div>
                 </div>
-
-                {statCriterion !== 'manual' && (
-                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
-                    <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase">
-                      <span>Modo Dinâmico Ativo</span>
-                    </div>
-                    <p className="text-xs text-white/70 leading-relaxed">
-                      {statCriterion === 'maior_ausencia'
-                        ? `O sistema buscará automaticamente o item/alvo com MAIOR AUSÊNCIA nas últimas ${analysisWindow} rodadas para disparar a confirmação.`
-                        : `O sistema buscará automaticamente o item/alvo com MAIOR FREQUÊNCIA nas últimas ${analysisWindow} rodadas para disparar a confirmação.`
-                      }
-                    </p>
-                  </div>
-                )}
 
                 {/* 1. Ausência / Delay Filter */}
                 <div className="space-y-3">
