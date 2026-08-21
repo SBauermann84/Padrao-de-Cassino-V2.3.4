@@ -1619,10 +1619,10 @@ export const getPositionCountForSignal = (sig: any): number => {
 
   // Prioridade Absoluta: Evita colisão com regiões clássicas francesas da roleta
   if (sig.isTpa84 || (sig.strategyId && String(sig.strategyId).toLowerCase().includes('tpa84'))) {
-    return sig.coveredCount || (sig.entryNumbers && sig.entryNumbers.length) || 24;
+    return sig.unitsRequired || 24;
   }
   if (sig.isAngel84 || (sig.strategyId && String(sig.strategyId).toLowerCase().includes('angel84'))) {
-    return sig.coveredCount || (sig.entryNumbers && sig.entryNumbers.length) || 24;
+    return sig.unitsRequired || (sig.entryNumbers && sig.entryNumbers.length) || 24;
   }
 
   const ent = sig.entry ? String(sig.entry).toLowerCase().trim() : '';
