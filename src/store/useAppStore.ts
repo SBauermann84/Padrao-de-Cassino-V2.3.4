@@ -1377,6 +1377,12 @@ export const useAppStore = create<AppState>()(
         // 1. Clear all daily stats from LocalStorage and cloud Firestore database
         await dailyStatsService.clearAllDailyStats();
 
+        // Clear auxiliary keys from local storage
+        localStorage.removeItem('casino_patterns');
+        localStorage.removeItem('adaptiveLogs');
+        localStorage.removeItem('casino_opt_records_v1');
+        localStorage.removeItem('heatmap_custom_alerts_v1');
+
         // 2. Clear histories, reset bankrolls, erase custom strategies and reset performance stats
         set((state) => {
           // Reset performance metrics (win rate, wins, losses, entries, roi, drawdown) to zero for system strategies

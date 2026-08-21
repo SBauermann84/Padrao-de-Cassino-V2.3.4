@@ -266,6 +266,10 @@ export const StorageManager: React.FC = () => {
                     try {
                       await masterReset();
                       localStorage.removeItem('casino-ai-storage');
+                      localStorage.removeItem('casino_patterns');
+                      localStorage.removeItem('adaptiveLogs');
+                      localStorage.removeItem('casino_opt_records_v1');
+                      localStorage.removeItem('heatmap_custom_alerts_v1');
                       window.location.reload();
                     } catch (e) {
                       setErrorMsg('Erro ao reiniciar os dados do aplicativo.');
