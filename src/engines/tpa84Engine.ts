@@ -314,7 +314,7 @@ export const tpa84Engine = {
     const classification = classifications[score - 1];
 
     // Reason
-    const reason = `Entrada gerada pela detecção dos terminais penúltimo (${termA}) e antepenúltimo (${termB}). Cobertura totalizando ${totalCoverage.length} números com vizinhos do Racetrack para máxima mitigação de desvio físico da roda. Zona de confluência principal: ${activeRegion}.`;
+    const reason = `Entrada gerada pela detecção dos terminais penúltimo (${termA}) e antepenúltimo (${termB}). Cobertura totalizando ${totalCoverage.length} números com vizinhos do Racetrack para máxima mitigação de desvio físico da roda. Zona de confluência principal: Terminais + 1 Vizinho.`;
 
     // Dynamic stats over current history
     const stats = skipStats ? {
@@ -345,12 +345,12 @@ export const tpa84Engine = {
       coveredCount: totalCoverage.length,
       unitsRequired: coverageA.length + coverageB.length,
       classification,
-      activeRegion,
+      activeRegion: 'Terminais + 1 Vizinho',
       distance,
       sameSector,
       regionalConcentration,
       recentRepetition,
-      dominanceArea,
+      dominanceArea: 'Terminais + 1 Vizinho',
       reason,
       stats
     };

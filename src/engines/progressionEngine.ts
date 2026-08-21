@@ -1617,6 +1617,14 @@ export const getPositionCountForSignal = (sig: any): number => {
     return 1;
   }
 
+  // Prioridade Absoluta: Evita colisão com regiões clássicas francesas da roleta
+  if (sig.isTpa84 || (sig.strategyId && String(sig.strategyId).toLowerCase().includes('tpa84'))) {
+    return sig.coveredCount || (sig.entryNumbers && sig.entryNumbers.length) || 24;
+  }
+  if (sig.isAngel84 || (sig.strategyId && String(sig.strategyId).toLowerCase().includes('angel84'))) {
+    return sig.coveredCount || (sig.entryNumbers && sig.entryNumbers.length) || 24;
+  }
+
   const ent = sig.entry ? String(sig.entry).toLowerCase().trim() : '';
   const pat = sig.patternName ? String(sig.patternName).toLowerCase().trim() : '';
   const cat = sig.category ? String(sig.category).toLowerCase().trim() : '';
