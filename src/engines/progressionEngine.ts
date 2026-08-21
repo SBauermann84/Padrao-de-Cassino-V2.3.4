@@ -832,6 +832,8 @@ export const getDynamicBetAndState = (
   let consecutiveWins = 0;
   let currentLevel = 0; // level/gale index (0 = base bet, 1 = Gale 1, and so on)
   let sequenceBaseBet = initialBet;
+  let lastLostBetInActiveSequence = 0;
+  let maxBaseBetInActiveSequence = initialBet;
 
   const fibSequence = generateFibonacciSequence(Math.max(30, levelsCount + 5));
   const padovanSequence = generatePadovanSequence(Math.max(30, levelsCount + 5));
@@ -859,6 +861,8 @@ export const getDynamicBetAndState = (
     const prevLevel = currentLevel;
     if (prevLevel === 0) {
       sequenceBaseBet = h.betSize !== undefined ? h.betSize : currentBet;
+      maxBaseBetInActiveSequence = Math.max(maxBaseBetInActiveSequence, h.betSize !== undefined ? h.betSize : currentBet);
+      lastLostBetInActiveSequence = 0;
     }
     const prevConsecutiveWins = consecutiveWins;
 
@@ -873,6 +877,7 @@ export const getDynamicBetAndState = (
       const lostAmount = h.profit !== undefined && h.profit < 0 ? Math.abs(h.profit) : currentBet;
       cycleLoss += lostAmount;
       currentLevel += 1;
+      lastLostBetInActiveSequence = h.betSize !== undefined ? h.betSize : currentBet;
     } else {
       const wonAmount = h.profit !== undefined && h.profit > 0 ? h.profit : 0;
       cycleLoss = Math.max(0, cycleLoss - wonAmount);
@@ -907,6 +912,8 @@ export const getDynamicBetAndState = (
       cycleLoss = 0;
       cycleProfit = 0;
       labouchereList = [initialBet, initialBet * 2, initialBet * 3];
+      lastLostBetInActiveSequence = 0;
+      maxBaseBetInActiveSequence = initialBet;
     } else {
       if (config.mode === ManagementMode.FIXED) {
         currentBet = initialBet;
@@ -1295,6 +1302,9 @@ export const getDynamicBetAndState = (
     } else if (currentLevel === 0) {
       currentBet = initialBet;
     } else {
+      // Keep sequence base bet at least at the highest base bet seen in the active sequence
+      sequenceBaseBet = Math.max(sequenceBaseBet, maxBaseBetInActiveSequence);
+
       let finalUnits = 1.0;
       const mult = config.multiplier || 2;
       switch (config.mode) {
@@ -1337,13 +1347,44 @@ export const getDynamicBetAndState = (
           finalUnits = 1.0;
           break;
       }
-      currentBet = sequenceBaseBet * finalUnits;
+
+      // Martingale specifically: always double the previous bet size in the active sequence to guarantee correct recovery
+      if (config.mode === ManagementMode.MARTINGALE && lastLostBetInActiveSequence > 0) {
+        currentBet = lastLostBetInActiveSequence * mult;
+      } else {
+        currentBet = sequenceBaseBet * finalUnits;
+      }
     }
   }
 
   // Ensure correct rounding relative to active layout
   const roundingUnit = (isBaccarat || N === 1) ? initialChip : initialBet;
   currentBet = Math.max(roundingUnit, Math.round(currentBet / roundingUnit) * roundingUnit);
+
+  // Fit recovery bet size to N positions of the current active signal
+  const isRecoveryMode = [
+    ManagementMode.MARTINGALE,
+    ManagementMode.FIBONACCI,
+    ManagementMode.D_ALEMBERT,
+    ManagementMode.CYCLIC,
+    ManagementMode.SISTEMA_2_GANHOS,
+    ManagementMode.SISTEMA_2U_REC1,
+    ManagementMode.OSCARS_GRIND,
+    ManagementMode.LABOUCHERE,
+    ManagementMode.NIVEL_FIXO_RECUPERACAO,
+    ManagementMode.STAR_2_2,
+    ManagementMode.STAR_2_0,
+    ManagementMode.DUTCH,
+    ManagementMode.PADOVAN
+  ].includes(config.mode);
+
+  if (isRecoveryMode && currentLevel > 0 && N > 1) {
+    const chipStep = overrideInitialChip !== undefined ? overrideInitialChip : (config.minChip || 0.10);
+    const rawIndividualBet = currentBet / N;
+    // Round UP the individual chip to ensure it covers the recovery requirement or matches approximately
+    const individualChip = Math.ceil(Number(rawIndividualBet.toFixed(4)) / chipStep) * chipStep;
+    currentBet = Number((individualChip * N).toFixed(2));
+  }
 
   if (config.minBet !== undefined && config.minBet > 0) {
     currentBet = Math.max(config.minBet, currentBet);
