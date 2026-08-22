@@ -567,48 +567,32 @@ export const runSingleBacktestSimulation = (
         absoluteMaxGaleNeeded = Math.max(absoluteMaxGaleNeeded, currentGaleStreak);
       }
 
-      // A. Update Win/Loss stats respecting Martingale gale limit
+      // A. Update Win/Loss stats flatly for every individual bet operation (matches roulette panel)
+      if (win) {
+        wins++;
+        currentConsecutiveLosses = 0;
+        if (!withPauseHasStopped) {
+          winsWithPause++;
+        }
+      } else {
+        losses++;
+        currentConsecutiveLosses++;
+        maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentConsecutiveLosses);
+        if (!withPauseHasStopped) {
+          lossesWithPause++;
+        }
+      }
+
+      // Track Martingale levels separately for progression and maximum gale analysis in background
       if (isMartingale) {
         if (win) {
-          wins++;
-          currentConsecutiveLosses = 0;
           currentGaleIndex = 0; // Reset Martingale cycle
-          
-          if (!withPauseHasStopped) {
-            winsWithPause++;
-          }
         } else {
-          // If we lost: check if we can double up (gale) or if we hit the limit
           if (currentGaleIndex < maxGalesAllowed) {
-            // Under gale limit, do NOT record a main simulation loss yet, just advance the level
             currentGaleIndex++;
             maxGaleReached = Math.max(maxGaleReached, currentGaleIndex);
           } else {
-            // GALES EXCEEDED! This counts as a cycle loss!
-            losses++;
-            currentConsecutiveLosses++;
-            maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentConsecutiveLosses);
-            currentGaleIndex = 0; // Reset martingale to level 0
-            
-            if (!withPauseHasStopped) {
-              lossesWithPause++;
-            }
-          }
-        }
-      } else {
-        // Non-martingale: every win/loss counts immediately
-        if (win) {
-          wins++;
-          currentConsecutiveLosses = 0;
-          if (!withPauseHasStopped) {
-            winsWithPause++;
-          }
-        } else {
-          losses++;
-          currentConsecutiveLosses++;
-          maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentConsecutiveLosses);
-          if (!withPauseHasStopped) {
-            lossesWithPause++;
+            currentGaleIndex = 0; // Reset martingale to level 0 (Gales exceeded)
           }
         }
       }
@@ -652,15 +636,8 @@ export const runSingleBacktestSimulation = (
     }
   }
 
-  // Handle final open martingale cycle loss at the very end of history
-  if (isMartingale && currentGaleIndex > 0) {
-    losses++;
-    currentConsecutiveLosses++;
-    maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentConsecutiveLosses);
-    if (!withPauseHasStopped) {
-      lossesWithPause++;
-    }
-  }
+  // Since each individual bet loss is now counted flatly during the loop,
+  // we do not need to add an extra loss for outstanding gales at the end of the history.
 
   return {
     winRate: (wins / (wins + losses || 1)) * 100,

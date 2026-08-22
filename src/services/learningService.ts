@@ -1,5 +1,5 @@
 export const learningService = {
-  async recordPattern(gameType: string, sequence: string[], outcome: string, isWin: boolean) {
+  async recordPattern(gameType: string, sequence: string[], outcome: string, _isWin?: boolean) {
     if (sequence.length < 5) return;
     
     const sequenceKey = sequence.join(',');
@@ -15,12 +15,12 @@ export const learningService = {
           gameType,
           sequence: sequenceKey,
           nextOutcome: outcome,
-          wins: isWin ? 1 : 0,
+          wins: 1, // Every actual transition represents a valid instance of this pattern
           count: 1,
           lastUpdated: Date.now()
         };
       } else {
-        localData[patternId].wins += isWin ? 1 : 0;
+        localData[patternId].wins += 1;
         localData[patternId].count += 1;
         localData[patternId].lastUpdated = Date.now();
       }
@@ -41,19 +41,30 @@ export const learningService = {
       const localData = JSON.parse(localDataStr);
       
       const findings: any[] = [];
+      let totalSequenceCount = 0;
+
+      // First pass: Find all transitions matching this sequence and calculate total occurrences
       for (const key of Object.keys(localData)) {
         const pattern = localData[key];
         if (pattern.gameType === gameType && pattern.sequence === sequenceKey) {
-          const winRate = pattern.count > 0 ? (pattern.wins / pattern.count) * 100 : 0;
+          totalSequenceCount += pattern.count;
           findings.push({
             entry: pattern.nextOutcome,
-            winRate,
             count: pattern.count
           });
         }
       }
 
-      const validFindings = findings.filter(f => f.count >= 2);
+      // Second pass: Calculate actual winRate as (transition count / total sequence occurrences)
+      const findingsWithRate = findings.map(f => ({
+        entry: f.entry,
+        winRate: totalSequenceCount > 0 ? (f.count / totalSequenceCount) * 100 : 0,
+        count: f.count
+      }));
+
+      // Filter and sort
+      // Requires at least 2 occurrences of this sequence to be scientifically valid (matches backtest total >= 2)
+      const validFindings = findingsWithRate.filter(f => f.count >= 2);
       validFindings.sort((a, b) => b.winRate - a.winRate || b.count - a.count);
 
       if (validFindings.length > 0 && validFindings[0].winRate >= 70) {
